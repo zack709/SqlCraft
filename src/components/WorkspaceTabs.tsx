@@ -129,7 +129,13 @@ export function WorkspaceTabs() {
               {tab.kind === "table-data" && <Table2 className="h-3 w-3 flex-shrink-0" />}
               {tab.kind === "table-design" && <Edit3 className="h-3 w-3 flex-shrink-0" />}
               {tab.kind === "query" && <Terminal className="h-3 w-3 flex-shrink-0" />}
-              <span className="truncate">{tab.title}</span>
+              <span className="truncate">
+                {tab.kind === "objects"
+                  ? language === "en"
+                    ? "Objects"
+                    : "物件"
+                  : tab.title}
+              </span>
               {tab.closable && (
                 <button
                   type="button"

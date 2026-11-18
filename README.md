@@ -1,6 +1,16 @@
 # SqlCraft
 
+**English** | [繁體中文](README.zh-TW.md)
+
 Cross-platform database workbench built with **Tauri 2.0** (Rust + React + TypeScript + Monaco Editor), supporting **MySQL**, **MariaDB**, and **PostgreSQL**.
+
+## Screenshots
+
+### Site Manager
+![SqlCraft Site Manager](docs/screenshots/site-manager.jpg)
+
+### Database Workbench
+![SqlCraft Workbench](docs/screenshots/workbench.jpg)
 
 ## Features
 

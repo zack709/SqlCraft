@@ -372,7 +372,7 @@ export default function App() {
                 winMenuOpen === "file" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
               }`}
             >
-              檔案
+              {language === "en" ? "File" : "檔案"}
             </button>
             {winMenuOpen === "file" && (
               <div className="absolute left-0 top-full z-50 mt-0.5 w-48 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
@@ -381,7 +381,7 @@ export default function App() {
                   onClick={() => openNewConnection("mysql")}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>新增 MySQL 連線...</span>
+                  <span>{language === "en" ? "New MySQL Site..." : "新增 MySQL 連線..."}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+N</span>
                 </button>
                 <button
@@ -389,14 +389,14 @@ export default function App() {
                   onClick={() => openNewConnection("mariadb")}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>新增 MariaDB 連線...</span>
+                  <span>{language === "en" ? "New MariaDB Site..." : "新增 MariaDB 連線..."}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => openNewConnection("postgres")}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>新增 PostgreSQL 連線...</span>
+                  <span>{language === "en" ? "New PostgreSQL Site..." : "新增 PostgreSQL 連線..."}</span>
                 </button>
                 <div className="my-1 border-t border-[#e2e8f0]" />
                 <button
@@ -407,7 +407,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>新增查詢分頁</span>
+                  <span>{language === "en" ? "New Query Tab" : "新增查詢分頁"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+T</span>
                 </button>
                 <div className="my-1 border-t border-[#e2e8f0]" />
@@ -419,7 +419,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>偏好設定...</span>
+                  <span>{language === "en" ? "Preferences..." : "偏好設定..."}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+,</span>
                 </button>
               </div>
@@ -434,7 +434,7 @@ export default function App() {
                 winMenuOpen === "edit" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
               }`}
             >
-              編輯
+              {language === "en" ? "Edit" : "編輯"}
             </button>
             {winMenuOpen === "edit" && (
               <div className="absolute left-0 top-full z-50 mt-0.5 w-48 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
@@ -446,7 +446,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>剪下</span>
+                  <span>{language === "en" ? "Cut" : "剪下"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+X</span>
                 </button>
                 <button
@@ -457,7 +457,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>複製</span>
+                  <span>{language === "en" ? "Copy" : "複製"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+C</span>
                 </button>
                 <button
@@ -472,7 +472,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>貼上</span>
+                  <span>{language === "en" ? "Paste" : "貼上"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+V</span>
                 </button>
                 <div className="my-1 border-t border-[#e2e8f0]" />
@@ -484,7 +484,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>全選</span>
+                  <span>{language === "en" ? "Select All" : "全選"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+A</span>
                 </button>
               </div>
@@ -499,7 +499,7 @@ export default function App() {
                 winMenuOpen === "view" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
               }`}
             >
-              檢視
+              {language === "en" ? "View" : "檢視"}
             </button>
             {winMenuOpen === "view" && (
               <div className="absolute left-0 top-full z-50 mt-0.5 w-48 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
@@ -514,7 +514,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  <span>資料表</span>
+                  <span>{t(language, "tables")}</span>
                 </button>
                 <button
                   type="button"
@@ -527,7 +527,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  <span>檢視表</span>
+                  <span>{t(language, "views")}</span>
                 </button>
                 <button
                   type="button"
@@ -540,7 +540,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  <span>函式與程序</span>
+                  <span>{t(language, "routines")}</span>
                 </button>
                 <div className="my-1 border-t border-[#e2e8f0]" />
                 <button
@@ -551,7 +551,15 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>{rightPaneOpen ? "隱藏右側資訊面板" : "顯示右側資訊面板"}</span>
+                  <span>
+                    {language === "en"
+                      ? rightPaneOpen
+                        ? "Hide Inspector"
+                        : "Show Inspector"
+                      : rightPaneOpen
+                      ? "隱藏右側資訊面板"
+                      : "顯示右側資訊面板"}
+                  </span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+I</span>
                 </button>
                 <button
@@ -562,7 +570,15 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
-                  <span>{isDark ? "切換為淺色主題" : "切換為深色主題"}</span>
+                  <span>
+                    {language === "en"
+                      ? isDark
+                        ? "Switch to Light Theme"
+                        : "Switch to Dark Theme"
+                      : isDark
+                      ? "切換為淺色主題"
+                      : "切換為深色主題"}
+                  </span>
                 </button>
                 <div className="my-1 border-t border-[#e2e8f0]" />
                 <button
@@ -580,7 +596,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  <span>重新整理物件</span>
+                  <span>{language === "en" ? "Refresh Objects" : "重新整理物件"}</span>
                   <span className="text-[10px] text-[#94a3b8]">Ctrl+R</span>
                 </button>
               </div>
@@ -608,7 +624,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  開啟選取連線
+                  {language === "en" ? "Connect Selected Site" : "開啟選取連線"}
                 </button>
                 <button
                   type="button"
@@ -619,7 +635,7 @@ export default function App() {
                   }}
                   className="flex w-full items-center px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
                 >
-                  載入離線範例結構 (Demo)
+                  {language === "en" ? "Load Offline Demo Schema" : "載入離線範例結構 (Demo)"}
                 </button>
               </div>
             )}
@@ -633,18 +649,21 @@ export default function App() {
                 winMenuOpen === "tools" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
               }`}
             >
-              工具
+              {language === "en" ? "Tools" : "工具"}
             </button>
             {winMenuOpen === "tools" && (
               <div className="absolute left-0 top-full z-50 mt-0.5 w-60 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
                 {[
-                  { label: "資料傳輸..." },
-                  { label: "資料產生..." },
-                  { label: "資料遮罩..." },
-                  { label: "資料字典..." },
-                  { label: "資料同步..." },
-                  { label: "結構同步..." },
-                  { label: "命令列介面...", shortcut: "F6" },
+                  { label: language === "en" ? "Data Transfer..." : "資料傳輸..." },
+                  { label: language === "en" ? "Data Generation..." : "資料產生..." },
+                  { label: language === "en" ? "Data Masking..." : "資料遮罩..." },
+                  { label: language === "en" ? "Data Dictionary..." : "資料字典..." },
+                  { label: language === "en" ? "Data Synchronization..." : "資料同步..." },
+                  { label: language === "en" ? "Structure Synchronization..." : "結構同步..." },
+                  {
+                    label: language === "en" ? "Command Line Interface..." : "命令列介面...",
+                    shortcut: "F6",
+                  },
                 ].map((item) => (
                   <button
                     key={item.label}
@@ -667,7 +686,7 @@ export default function App() {
             onClick={() => setSettingsModalOpen(true)}
             className="rounded px-2 py-0.5 hover:bg-[#e8eefc] hover:text-[#1d4ed8]"
           >
-            設定
+            {t(language, "settings")}
           </button>
 
           <div className="ml-auto flex items-center gap-1.5">
