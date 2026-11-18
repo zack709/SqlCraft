@@ -342,7 +342,7 @@ fn default_editor_font_size() -> u16 {
 }
 
 fn default_folders() -> Vec<String> {
-    vec!["Local".to_string()]
+    Vec::new()
 }
 
 fn default_show_site_manager_on_startup() -> bool {

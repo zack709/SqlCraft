@@ -272,90 +272,7 @@ impl ProfileStore {
         .await
         .map_err(|e| format!("Failed to migrate saved_queries: {e}"))?;
 
-        let count_row = sqlx::query("SELECT COUNT(*) AS cnt FROM connection_profiles")
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| format!("Failed to count profiles: {e}"))?;
-        let count: i64 = count_row.try_get("cnt").unwrap_or(0);
-        if count == 0 {
-            for starter in Self::starter_profiles() {
-                self.save_profile(&starter).await?;
-            }
-        }
-
         Ok(())
-    }
-
-    fn starter_profiles() -> Vec<ConnectionProfile> {
-        let now = chrono::Utc::now().to_rfc3339();
-        vec![
-            ConnectionProfile {
-                id: "starter-mysql-local".to_string(),
-                name: "Local MySQL (3306)".to_string(),
-                group_name: Some("Local".to_string()),
-                db_kind: DbKind::Mysql,
-                host: "127.0.0.1".to_string(),
-                port: 3306,
-                initial_database: None,
-                username: "root".to_string(),
-                password: None,
-                save_password: false,
-                color: Some("#2563eb".to_string()),
-                encoding: Some("utf8mb4".to_string()),
-                keepalive_secs: 60,
-                connect_timeout_secs: 10,
-                auto_connect: false,
-                ssl: SslConfig::default(),
-                ssh: SshTunnelConfig::default(),
-                http_tunnel: HttpTunnelConfig::default(),
-                created_at: now.clone(),
-                updated_at: now.clone(),
-            },
-            ConnectionProfile {
-                id: "starter-mariadb-local".to_string(),
-                name: "Local MariaDB (3306)".to_string(),
-                group_name: Some("Local".to_string()),
-                db_kind: DbKind::MariaDb,
-                host: "127.0.0.1".to_string(),
-                port: 3306,
-                initial_database: None,
-                username: "root".to_string(),
-                password: None,
-                save_password: false,
-                color: Some("#0d9488".to_string()),
-                encoding: Some("utf8mb4".to_string()),
-                keepalive_secs: 60,
-                connect_timeout_secs: 10,
-                auto_connect: false,
-                ssl: SslConfig::default(),
-                ssh: SshTunnelConfig::default(),
-                http_tunnel: HttpTunnelConfig::default(),
-                created_at: now.clone(),
-                updated_at: now.clone(),
-            },
-            ConnectionProfile {
-                id: "starter-postgres-local".to_string(),
-                name: "Local PostgreSQL (5432)".to_string(),
-                group_name: Some("Local".to_string()),
-                db_kind: DbKind::Postgres,
-                host: "127.0.0.1".to_string(),
-                port: 5432,
-                initial_database: Some("postgres".to_string()),
-                username: "postgres".to_string(),
-                password: None,
-                save_password: false,
-                color: Some("#4f46e5".to_string()),
-                encoding: Some("UTF8".to_string()),
-                keepalive_secs: 60,
-                connect_timeout_secs: 10,
-                auto_connect: false,
-                ssl: SslConfig::default(),
-                ssh: SshTunnelConfig::default(),
-                http_tunnel: HttpTunnelConfig::default(),
-                created_at: now.clone(),
-                updated_at: now,
-            },
-        ]
     }
 
     pub async fn list_profiles(&self) -> Result<Vec<ConnectionProfile>, String> {
@@ -657,16 +574,32 @@ mod tests {
     #[tokio::test]
     async fn profile_store_seeds_saves_lists_and_deletes() {
         let store = ProfileStore::open_in_memory([7u8; 32]).await.unwrap();
-        let seeded = store.list_profiles().await.unwrap();
-        assert_eq!(seeded.len(), 3);
+        let initial = store.list_profiles().await.unwrap();
+        assert!(initial.is_empty());
 
-        let mut custom = seeded[0].clone();
-        custom.id = "custom-pg-prod".to_string();
-        custom.name = "Prod PostgreSQL".to_string();
-        custom.db_kind = DbKind::Postgres;
-        custom.port = 5432;
-        custom.password = Some("pg-secret-token".to_string());
-        custom.save_password = true;
+        let now = chrono::Utc::now().to_rfc3339();
+        let custom = ConnectionProfile {
+            id: "custom-pg-prod".to_string(),
+            name: "Prod PostgreSQL".to_string(),
+            group_name: Some("Prod".to_string()),
+            db_kind: DbKind::Postgres,
+            host: "127.0.0.1".to_string(),
+            port: 5432,
+            initial_database: Some("postgres".to_string()),
+            username: "postgres".to_string(),
+            password: Some("pg-secret-token".to_string()),
+            save_password: true,
+            color: Some("#4f46e5".to_string()),
+            encoding: Some("UTF8".to_string()),
+            keepalive_secs: 60,
+            connect_timeout_secs: 10,
+            auto_connect: false,
+            ssl: SslConfig::default(),
+            ssh: SshTunnelConfig::default(),
+            http_tunnel: HttpTunnelConfig::default(),
+            created_at: now.clone(),
+            updated_at: now,
+        };
 
         store.save_profile(&custom).await.unwrap();
         let loaded = store.get_profile("custom-pg-prod").await.unwrap();
@@ -675,7 +608,7 @@ mod tests {
 
         store.delete_profile("custom-pg-prod").await.unwrap();
         let after_delete = store.list_profiles().await.unwrap();
-        assert_eq!(after_delete.len(), 3);
+        assert!(after_delete.is_empty());
     }
 
     #[tokio::test]

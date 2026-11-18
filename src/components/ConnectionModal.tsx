@@ -74,7 +74,7 @@ const DB_BADGE: Record<DbKind, { label: string; color: string }> = {
   postgres: { label: "PG", color: "#4f46e5" },
 };
 
-function createEmptyProfile(kind: DbKind, folder: string | null = "Local"): ConnectionProfile {
+function createEmptyProfile(kind: DbKind, folder: string | null = null): ConnectionProfile {
   const now = new Date().toISOString();
   const isPg = kind === "postgres";
   return {
@@ -207,7 +207,7 @@ export function ConnectionModal({
       setDraft({ ...first });
     } else {
       setSelection({ kind: "newSite" });
-      setDraft(createEmptyProfile(defaultDbKind, folders[0] ?? "Local"));
+      setDraft(createEmptyProfile(defaultDbKind, folders[0] ?? null));
     }
   }, [open, editingProfile, defaultDbKind]);
 
@@ -271,7 +271,7 @@ export function ConnectionModal({
     setNotice(null);
   };
 
-  const selectNewSiteInFolder = (folder: string | null = draft.groupName ?? "Local") => {
+  const selectNewSiteInFolder = (folder: string | null = draft.groupName ?? null) => {
     setSelection({ kind: "newSite" });
     setDraft(createEmptyProfile(defaultDbKind, folder));
     setTestResult(null);
@@ -398,7 +398,7 @@ export function ConnectionModal({
       setSelection({ kind: "site", siteId: remaining[0].id });
       setDraft({ ...remaining[0] });
     } else {
-      selectNewSiteInFolder("Local");
+      selectNewSiteInFolder(null);
     }
     setNotice({ type: "info", text: "已刪除站台" });
   };
@@ -510,7 +510,7 @@ export function ConnectionModal({
               >
                 <button
                   type="button"
-                  onClick={() => selectNewSiteInFolder(draft.groupName ?? "Local")}
+                  onClick={() => selectNewSiteInFolder(draft.groupName ?? null)}
                   className={`flex flex-1 items-center gap-1.5 px-2 py-1 text-left font-medium ${
                     isMac ? "rounded-md" : "rounded"
                   } ${
@@ -1034,7 +1034,6 @@ export function ConnectionModal({
                             >
                               <DbEngineIcon kind={kind} size={16} />
                               <span className="flex-1">{meta.label}</span>
-                              <span className="text-[10px] opacity-65">:{meta.defaultPort}</span>
                             </button>
                           );
                         })}

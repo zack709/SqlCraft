@@ -349,7 +349,7 @@ export default function App() {
       ) : (
         <header
           ref={winMenuRef}
-          className={`relative flex h-[25px] flex-shrink-0 items-center gap-1 border-b px-2.5 text-[11px] select-none ${
+          className={`relative flex h-[30px] flex-shrink-0 items-center gap-1 border-b px-2.5 text-[11px] select-none ${
             isDark
               ? "border-[#333336] bg-[#202022] text-[#dcdcdc]"
               : "border-[#dcdfe6] bg-[#f8f9fb] text-[#3c4043]"
@@ -429,6 +429,71 @@ export default function App() {
           <div className="relative">
             <button
               type="button"
+              onClick={() => setWinMenuOpen(winMenuOpen === "edit" ? null : "edit")}
+              className={`rounded px-2 py-0.5 hover:bg-[#e8eefc] hover:text-[#1d4ed8] ${
+                winMenuOpen === "edit" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
+              }`}
+            >
+              編輯
+            </button>
+            {winMenuOpen === "edit" && (
+              <div className="absolute left-0 top-full z-50 mt-0.5 w-48 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    document.execCommand("cut");
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
+                >
+                  <span>剪下</span>
+                  <span className="text-[10px] text-[#94a3b8]">Ctrl+X</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    document.execCommand("copy");
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
+                >
+                  <span>複製</span>
+                  <span className="text-[10px] text-[#94a3b8]">Ctrl+C</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    void navigator.clipboard?.readText().then((text) => {
+                      if (text) document.execCommand("insertText", false, text);
+                    }).catch(() => {
+                      document.execCommand("paste");
+                    });
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
+                >
+                  <span>貼上</span>
+                  <span className="text-[10px] text-[#94a3b8]">Ctrl+V</span>
+                </button>
+                <div className="my-1 border-t border-[#e2e8f0]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    document.execCommand("selectAll");
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff]"
+                >
+                  <span>全選</span>
+                  <span className="text-[10px] text-[#94a3b8]">Ctrl+A</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
               onClick={() => setWinMenuOpen(winMenuOpen === "view" ? null : "view")}
               className={`rounded px-2 py-0.5 hover:bg-[#e8eefc] hover:text-[#1d4ed8] ${
                 winMenuOpen === "view" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
@@ -438,6 +503,46 @@ export default function App() {
             </button>
             {winMenuOpen === "view" && (
               <div className="absolute left-0 top-full z-50 mt-0.5 w-48 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  disabled={!selectedScope?.database}
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    if (selectedScope) {
+                      void selectScope({ ...selectedScope, category: "tables", objectName: null });
+                    }
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
+                >
+                  <span>資料表</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedScope?.database}
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    if (selectedScope) {
+                      void selectScope({ ...selectedScope, category: "views", objectName: null });
+                    }
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
+                >
+                  <span>檢視表</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedScope?.database}
+                  onClick={() => {
+                    setWinMenuOpen(null);
+                    if (selectedScope) {
+                      void selectScope({ ...selectedScope, category: "routines", objectName: null });
+                    }
+                  }}
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-[#eff6ff] disabled:opacity-40"
+                >
+                  <span>函式與程序</span>
+                </button>
+                <div className="my-1 border-t border-[#e2e8f0]" />
                 <button
                   type="button"
                   onClick={() => {
@@ -520,13 +625,42 @@ export default function App() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => openQueryTab()}
-            className="rounded px-2 py-0.5 hover:bg-[#e8eefc] hover:text-[#1d4ed8]"
-          >
-            工具
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setWinMenuOpen(winMenuOpen === "tools" ? null : "tools")}
+              className={`rounded px-2 py-0.5 hover:bg-[#e8eefc] hover:text-[#1d4ed8] ${
+                winMenuOpen === "tools" ? "bg-[#dbeafe] text-[#1d4ed8]" : ""
+              }`}
+            >
+              工具
+            </button>
+            {winMenuOpen === "tools" && (
+              <div className="absolute left-0 top-full z-50 mt-0.5 w-60 rounded border border-[#cbd5e1] bg-white py-1 shadow-lg">
+                {[
+                  { label: "資料傳輸..." },
+                  { label: "資料產生..." },
+                  { label: "資料遮罩..." },
+                  { label: "資料字典..." },
+                  { label: "資料同步..." },
+                  { label: "結構同步..." },
+                  { label: "命令列介面...", shortcut: "F6" },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    disabled
+                    className="flex w-full items-center justify-between px-3 py-1.5 text-left opacity-50 cursor-default"
+                  >
+                    <span>{item.label}</span>
+                    {item.shortcut && (
+                      <span className="text-[10px] text-[#94a3b8]">{item.shortcut}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
@@ -539,37 +673,16 @@ export default function App() {
           <div className="ml-auto flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setSettingsModalOpen(true)}
-              title="偏好設定 (Ctrl+,)"
-              className={`rounded border p-0.5 ${
-                isDark
-                  ? "border-[#3d3d42] text-[#d1d1d6] hover:bg-[#333337]"
-                  : "border-[#cbd5e1] text-[#475569] hover:bg-[#e2e8f0]"
-              }`}
-            >
-              <Settings className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
               onClick={toggleTheme}
               title={isDark ? "切換為淺色主題" : "切換為深色主題"}
-              className={`rounded border p-0.5 ${
+              className={`rounded border p-1 ${
                 isDark
                   ? "border-[#3d3d42] text-amber-300 hover:bg-[#333337]"
                   : "border-[#cbd5e1] text-slate-700 hover:bg-[#e2e8f0]"
               }`}
             >
-              {isDark ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <span
-              className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                isDark
-                  ? "bg-[#1e3a8a]/60 text-[#93c5fd]"
-                  : "bg-[#e8eefc] text-[#1d4ed8]"
-              }`}
-            >
-              {isTauriRuntime() ? "Tauri 2.0 Native" : "Web Preview"}
-            </span>
           </div>
         </header>
       )}
@@ -718,6 +831,16 @@ export default function App() {
           >
             <ListOrdered className="h-5 w-5 text-[#f59e0b]" />
             <span className="mt-1 text-[11px]">{t(language, "sequences")}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSettingsModalOpen(true)}
+            title="偏好設定 (Ctrl+,)"
+            className={toolbarBtnCls}
+          >
+            <Settings className={`h-5 w-5 ${isDark ? "text-[#94a3b8]" : "text-[#475569]"}`} />
+            <span className="mt-1 text-[11px]">{t(language, "settings")}</span>
           </button>
 
           <button

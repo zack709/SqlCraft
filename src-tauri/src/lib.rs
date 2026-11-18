@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod drivers;
+#[cfg(target_os = "macos")]
 pub mod menu;
 pub mod models;
 pub mod storage;
@@ -21,13 +22,17 @@ pub fn run() {
                 store,
                 connections: ConnectionManager::new(),
             });
+            #[cfg(target_os = "macos")]
             if let Ok(app_menu) = menu::build_app_menu(app.handle()) {
                 let _ = app.set_menu(app_menu);
             }
             Ok(())
         })
         .on_menu_event(|app, event| {
+            #[cfg(target_os = "macos")]
             menu::handle_menu_event(app, event);
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_profiles,

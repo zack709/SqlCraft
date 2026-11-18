@@ -382,7 +382,7 @@ function readInitialFolders(): string[] {
   } catch {
     // ignore
   }
-  return ["Local"];
+  return [];
 }
 
 function writeFolders(folders: string[]): void {
@@ -769,7 +769,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         appConfig != null ? appConfig.showSiteManagerOnStartup : state.showSiteManagerOnStartup;
 
       const nextStates = { ...state.connectionStates };
-      const folderSet = new Set<string>(appConfig?.folders?.length ? appConfig.folders : state.folders);
+      const folderSet = new Set<string>(appConfig ? appConfig.folders : state.folders);
       for (const p of items) {
         if (!nextStates[p.id]) nextStates[p.id] = "disconnected";
         const g = p.groupName?.trim();

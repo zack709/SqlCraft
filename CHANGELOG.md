@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **License**: Switched project license to **Apache License 2.0 + Commons Clause 1.0** (`LICENSE`).
 - **Navicat-Style Tree & Connection UX**: Double-clicking a database opens it without auto-expanding tables; category folders (`Tables`, `Views`, etc.) select on single-click and expand on double-click; single-row highlight on folder selection. Clicking Connect closes Site Manager immediately and displays connecting status with a **Cancel Connection** button in the left explorer.
 - **UI Cleanup**: Removed Demo preview buttons and tag color swatches from Site Manager.
+- **Windows Readability & Unified Menu Bar (`src/index.css`, `src/utils/platform.ts`, `src/App.tsx`, `src-tauri/src/lib.rs`)**: Added `isWindows()` detection with `"Segoe UI"` / `"Microsoft JhengHei"` and enlarged UI font sizes on Windows; scoped native OS menu bar to macOS and merged `編輯` / `檢視` items into the unified Windows/Linux menu bar; added `工具` dropdown menu items (`資料傳輸...` ~ `命令列介面...`); moved Settings beside `Refresh`, enlarged the theme toggle button, and removed the `Tauri 2.0 Native` header badge.
+- **Clean Initial Site Manager (`src-tauri/src/storage/mod.rs`, `src/components/ConnectionModal.tsx`, `src/store/workbenchStore.ts`)**: Removed default starter connection profiles and default `Local` folder, removed `:port` labels from the engine dropdown, and fixed empty `appConfig.folders` fallback.
+- **CI Workflow**: Upgraded `actions/upload-artifact` to `v6` in `.github/workflows/release.yml` for Node.js 24 runner compatibility.
 
 ### Fixed
 - **MariaDB Database List (`src-tauri/src/drivers/mysql.rs`)**: Simplified `information_schema.SCHEMATA` query, added `Vec<u8>` decoding, and added `SHOW DATABASES` fallback so MariaDB databases always load properly.

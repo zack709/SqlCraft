@@ -42,93 +42,7 @@ export function isTauriRuntime(): boolean {
 }
 
 function getDefaultBrowserProfiles(): ConnectionProfile[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "preview-mysql-local",
-      name: "Local MySQL (3306)",
-      groupName: "Local",
-      dbKind: "mysql",
-      host: "127.0.0.1",
-      port: 3306,
-      initialDatabase: null,
-      username: "root",
-      password: "",
-      savePassword: false,
-      color: "#2563eb",
-      encoding: "utf8mb4",
-      keepaliveSecs: 60,
-      connectTimeoutSecs: 10,
-      autoConnect: false,
-      ssl: { useSsl: false, mode: "prefer" },
-      ssh: {
-        useSsh: false,
-        host: "",
-        port: 22,
-        username: "",
-        authMethod: "password",
-      },
-      httpTunnel: { useHttpTunnel: false, url: "", encodeBase64: true },
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "preview-mariadb-local",
-      name: "Local MariaDB (3306)",
-      groupName: "Local",
-      dbKind: "mariadb",
-      host: "127.0.0.1",
-      port: 3306,
-      initialDatabase: null,
-      username: "root",
-      password: "",
-      savePassword: false,
-      color: "#0d9488",
-      encoding: "utf8mb4",
-      keepaliveSecs: 60,
-      connectTimeoutSecs: 10,
-      autoConnect: false,
-      ssl: { useSsl: false, mode: "prefer" },
-      ssh: {
-        useSsh: false,
-        host: "",
-        port: 22,
-        username: "",
-        authMethod: "password",
-      },
-      httpTunnel: { useHttpTunnel: false, url: "", encodeBase64: true },
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "preview-postgres-local",
-      name: "Local PostgreSQL (5432)",
-      groupName: "Local",
-      dbKind: "postgres",
-      host: "127.0.0.1",
-      port: 5432,
-      initialDatabase: "postgres",
-      username: "postgres",
-      password: "",
-      savePassword: false,
-      color: "#4f46e5",
-      encoding: "UTF8",
-      keepaliveSecs: 60,
-      connectTimeoutSecs: 10,
-      autoConnect: false,
-      ssl: { useSsl: false, mode: "prefer" },
-      ssh: {
-        useSsh: false,
-        host: "",
-        port: 22,
-        username: "",
-        authMethod: "password",
-      },
-      httpTunnel: { useHttpTunnel: false, url: "", encodeBase64: true },
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
+  return [];
 }
 
 function readBrowserProfiles(): ConnectionProfile[] {
@@ -471,9 +385,9 @@ export const tauriApi = {
           try {
             const raw = localStorage.getItem("sqlcraft.folders");
             const parsed = raw ? JSON.parse(raw) : null;
-            return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["Local"];
+            return Array.isArray(parsed) ? parsed : [];
           } catch {
-            return ["Local"];
+            return [];
           }
         })(),
         showSiteManagerOnStartup:
