@@ -129,22 +129,11 @@ export function ObjectListPane() {
           <Table2
             className={`mx-auto h-10 w-10 ${isMac ? "text-[#007aff]" : "text-[#2563eb]"}`}
           />
-          <h2 className="mt-3 text-sm font-semibold text-[#0f172a]">
-            {profile
-              ? profile.name
-              : language === "en"
-              ? "SqlCraft Cross-Platform Database Workbench"
-              : "SqlCraft 跨平台資料庫工作台"}
-          </h2>
-          <p className="mt-1.5 text-[11px] text-[#64748b]">
-            {profile
-              ? language === "en"
-                ? `Not connected (${profile.host}:${profile.port}). Open Site Manager to connect.`
-                : `尚未開啟資料庫連線（${profile.host}:${profile.port}）。請連接真實資料庫，或載入離線範例結構瀏覽工作台介面。`
-              : language === "en"
-              ? "Open Site Manager to select or create a MySQL / MariaDB / PostgreSQL connection."
-              : "請開啟「站台管理」選擇或新增 MySQL / MariaDB / PostgreSQL 站台進行連線。"}
-          </p>
+          {profile && (
+            <h2 className="mt-3 text-sm font-semibold text-[#0f172a]">
+              {profile.name}
+            </h2>
+          )}
 
           {connError && (
             <div className="mt-3 rounded border border-[#fecaca] bg-[#fef2f2] p-2.5 text-left font-mono text-[10px] text-[#991b1b]">
