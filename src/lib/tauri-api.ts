@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AppConfig,
   BatchQueryResponse,
   ColumnInfo,
   ConnectionProfile,
@@ -458,5 +459,42 @@ export const tauriApi = {
       return;
     }
     return invoke<void>("delete_saved_query", { queryId });
+  },
+
+  async getAppConfig(): Promise<AppConfig> {
+    if (!isTauriRuntime()) {
+      return {
+        theme: localStorage.getItem("sqlcraft.theme") === "dark" ? "dark" : "light",
+        language: localStorage.getItem("sqlcraft.language") === "en" ? "en" : "zh-TW",
+        editorFontSize: Number(localStorage.getItem("sqlcraft.editorFontSize")) || 13,
+        folders: (() => {
+          try {
+            const raw = localStorage.getItem("sqlcraft.folders");
+            const parsed = raw ? JSON.parse(raw) : null;
+            return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["Local"];
+          } catch {
+            return ["Local"];
+          }
+        })(),
+        showSiteManagerOnStartup:
+          localStorage.getItem("sqlcraft.showSiteManagerOnStartup") !== "false",
+      };
+    }
+    return invoke<AppConfig>("get_app_config");
+  },
+
+  async saveAppConfig(config: AppConfig): Promise<AppConfig> {
+    if (!isTauriRuntime()) {
+      localStorage.setItem("sqlcraft.theme", config.theme);
+      localStorage.setItem("sqlcraft.language", config.language);
+      localStorage.setItem("sqlcraft.editorFontSize", String(config.editorFontSize));
+      localStorage.setItem("sqlcraft.folders", JSON.stringify(config.folders));
+      localStorage.setItem(
+        "sqlcraft.showSiteManagerOnStartup",
+        String(config.showSiteManagerOnStartup)
+      );
+      return config;
+    }
+    return invoke<AppConfig>("save_app_config", { config });
   },
 };

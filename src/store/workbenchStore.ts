@@ -465,6 +465,14 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       // ignore
     }
     set({ theme });
+    const s = get();
+    void tauriApi.saveAppConfig({
+      theme,
+      language: s.language,
+      editorFontSize: s.editorFontSize,
+      folders: s.folders,
+      showSiteManagerOnStartup: s.showSiteManagerOnStartup,
+    }).catch(() => {});
   },
 
   toggleTheme: () => {
@@ -479,6 +487,14 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       // ignore storage errors
     }
     set({ language });
+    const s = get();
+    void tauriApi.saveAppConfig({
+      theme: s.theme,
+      language,
+      editorFontSize: s.editorFontSize,
+      folders: s.folders,
+      showSiteManagerOnStartup: s.showSiteManagerOnStartup,
+    }).catch(() => {});
   },
 
   setEditorFontSize: (size) => {
@@ -489,6 +505,14 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       // ignore
     }
     set({ editorFontSize: clamped });
+    const s = get();
+    void tauriApi.saveAppConfig({
+      theme: s.theme,
+      language: s.language,
+      editorFontSize: clamped,
+      folders: s.folders,
+      showSiteManagerOnStartup: s.showSiteManagerOnStartup,
+    }).catch(() => {});
   },
 
   setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
@@ -500,6 +524,14 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       // ignore
     }
     set({ showSiteManagerOnStartup: show });
+    const s = get();
+    void tauriApi.saveAppConfig({
+      theme: s.theme,
+      language: s.language,
+      editorFontSize: s.editorFontSize,
+      folders: s.folders,
+      showSiteManagerOnStartup: show,
+    }).catch(() => {});
   },
 
   createFolder: (folderName) => {
@@ -509,6 +541,13 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       if (state.folders.includes(trimmed)) return state;
       const next = [...state.folders, trimmed].sort((a, b) => a.localeCompare(b));
       writeFolders(next);
+      void tauriApi.saveAppConfig({
+        theme: state.theme,
+        language: state.language,
+        editorFontSize: state.editorFontSize,
+        folders: next,
+        showSiteManagerOnStartup: state.showSiteManagerOnStartup,
+      }).catch(() => {});
       return { folders: next };
     });
   },
@@ -522,6 +561,13 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     set((state) => {
       const next = state.folders.filter((f) => f !== trimmed);
       writeFolders(next);
+      void tauriApi.saveAppConfig({
+        theme: state.theme,
+        language: state.language,
+        editorFontSize: state.editorFontSize,
+        folders: next,
+        showSiteManagerOnStartup: state.showSiteManagerOnStartup,
+      }).catch(() => {});
       return { folders: next };
     });
     await get().loadProfiles();
@@ -707,13 +753,23 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   loadProfiles: async () => {
-    const [items, savedQueries] = await Promise.all([
+    const [items, savedQueries, appConfig] = await Promise.all([
       tauriApi.listProfiles(),
       tauriApi.listSavedQueries(null),
+      tauriApi.getAppConfig().catch(() => null),
     ]);
     set((state) => {
+      const nextTheme: ThemeMode = appConfig?.theme === "dark" ? "dark" : appConfig?.theme === "light" ? "light" : state.theme;
+      const nextLanguage: AppLanguage = appConfig?.language === "en" ? "en" : appConfig?.language === "zh-TW" ? "zh-TW" : state.language;
+      const nextFontSize =
+        appConfig?.editorFontSize && appConfig.editorFontSize >= 11 && appConfig.editorFontSize <= 20
+          ? appConfig.editorFontSize
+          : state.editorFontSize;
+      const nextShowStartup =
+        appConfig != null ? appConfig.showSiteManagerOnStartup : state.showSiteManagerOnStartup;
+
       const nextStates = { ...state.connectionStates };
-      const folderSet = new Set<string>(state.folders);
+      const folderSet = new Set<string>(appConfig?.folders?.length ? appConfig.folders : state.folders);
       for (const p of items) {
         if (!nextStates[p.id]) nextStates[p.id] = "disconnected";
         const g = p.groupName?.trim();
@@ -724,7 +780,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
 
       const shouldAutoOpen =
         !hasOpenedStartupModal &&
-        state.showSiteManagerOnStartup &&
+        nextShowStartup &&
         state.sessionTabs.length === 0;
       if (!hasOpenedStartupModal) {
         hasOpenedStartupModal = true;
@@ -733,6 +789,10 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       return {
         profiles: items,
         folders: mergedFolders,
+        theme: nextTheme,
+        language: nextLanguage,
+        editorFontSize: nextFontSize,
+        showSiteManagerOnStartup: nextShowStartup,
         savedQueries,
         connectionStates: nextStates,
         connectionModalOpen: shouldAutoOpen ? true : state.connectionModalOpen,

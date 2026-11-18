@@ -329,6 +329,53 @@ pub struct SavedQuery {
     pub updated_at: String,
 }
 
+fn default_theme() -> String {
+    "light".to_string()
+}
+
+fn default_language() -> String {
+    "zh-TW".to_string()
+}
+
+fn default_editor_font_size() -> u16 {
+    13
+}
+
+fn default_folders() -> Vec<String> {
+    vec!["Local".to_string()]
+}
+
+fn default_show_site_manager_on_startup() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppConfig {
+    #[serde(default = "default_theme")]
+    pub theme: String,
+    #[serde(default = "default_language")]
+    pub language: String,
+    #[serde(default = "default_editor_font_size")]
+    pub editor_font_size: u16,
+    #[serde(default = "default_folders")]
+    pub folders: Vec<String>,
+    #[serde(default = "default_show_site_manager_on_startup")]
+    pub show_site_manager_on_startup: bool,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            theme: default_theme(),
+            language: default_language(),
+            editor_font_size: default_editor_font_size(),
+            folders: default_folders(),
+            show_site_manager_on_startup: default_show_site_manager_on_startup(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

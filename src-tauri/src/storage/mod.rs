@@ -10,7 +10,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use sqlx::Row;
 
 use crate::models::{
-    ConnectionProfile, DbKind, HttpTunnelConfig, SavedQuery, SshTunnelConfig, SslConfig,
+    AppConfig, ConnectionProfile, DbKind, HttpTunnelConfig, SavedQuery, SshTunnelConfig, SslConfig,
 };
 
 const CIPHER_PREFIX: &str = "v1:";
@@ -116,10 +116,35 @@ impl CredentialCipher {
 pub struct ProfileStore {
     pool: SqlitePool,
     cipher: CredentialCipher,
+    data_dir: Option<PathBuf>,
 }
 
 impl ProfileStore {
+    pub fn is_portable_mode() -> bool {
+        if cfg!(feature = "portable") {
+            return true;
+        }
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                if exe_dir.join("config").is_dir()
+                    || exe_dir.join(".portable").exists()
+                    || exe_dir.join("portable.txt").exists()
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     pub fn default_data_dir() -> PathBuf {
+        if Self::is_portable_mode() {
+            if let Ok(exe) = std::env::current_exe() {
+                if let Some(exe_dir) = exe.parent() {
+                    return exe_dir.join("config");
+                }
+            }
+        }
         dirs::data_local_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("SqlCraft")
@@ -140,10 +165,15 @@ impl ProfileStore {
             .max_connections(5)
             .connect_with(opts)
             .await
-            .map_err(|e| format!("Failed to open local SQLite store: {e}"))?;
+            .map_err(|e| format!("Failed to open local SQLite store at {}: {e}", db_path.display()))?;
 
-        let store = Self { pool, cipher };
+        let store = Self {
+            pool,
+            cipher,
+            data_dir: Some(dir.to_path_buf()),
+        };
         store.migrate_and_seed().await?;
+        let _ = store.load_app_config()?;
         Ok(store)
     }
 
@@ -156,9 +186,41 @@ impl ProfileStore {
         let store = Self {
             pool,
             cipher: CredentialCipher::from_key(key),
+            data_dir: None,
         };
         store.migrate_and_seed().await?;
         Ok(store)
+    }
+
+    pub fn load_app_config(&self) -> Result<AppConfig, String> {
+        let Some(ref dir) = self.data_dir else {
+            return Ok(AppConfig::default());
+        };
+        let cfg_path = dir.join("config.json");
+        if !cfg_path.exists() {
+            let defaults = AppConfig::default();
+            self.save_app_config(&defaults)?;
+            return Ok(defaults);
+        }
+        let raw = std::fs::read_to_string(&cfg_path)
+            .map_err(|e| format!("Failed to read {}: {e}", cfg_path.display()))?;
+        serde_json::from_str::<AppConfig>(&raw)
+            .map_err(|e| format!("Failed to parse {}: {e}", cfg_path.display()))
+    }
+
+    pub fn save_app_config(&self, config: &AppConfig) -> Result<AppConfig, String> {
+        let mut normalized = config.clone();
+        normalized.editor_font_size = normalized.editor_font_size.clamp(11, 20);
+        if let Some(ref dir) = self.data_dir {
+            std::fs::create_dir_all(dir)
+                .map_err(|e| format!("Failed to create config directory {}: {e}", dir.display()))?;
+            let cfg_path = dir.join("config.json");
+            let json = serde_json::to_string_pretty(&normalized)
+                .map_err(|e| format!("Failed to serialize app config: {e}"))?;
+            std::fs::write(&cfg_path, json)
+                .map_err(|e| format!("Failed to write {}: {e}", cfg_path.display()))?;
+        }
+        Ok(normalized)
     }
 
     async fn migrate_and_seed(&self) -> Result<(), String> {
@@ -643,5 +705,29 @@ mod tests {
         store.delete_saved_query("q-1").await.unwrap();
         let empty = store.list_saved_queries(None).await.unwrap();
         assert!(empty.is_empty());
+    }
+
+    #[tokio::test]
+    async fn app_config_and_encrypted_db_store_in_config_dir() {
+        let temp_dir = std::env::temp_dir().join(format!("sqlcraft-test-{}", uuid::Uuid::new_v4()));
+        let store = ProfileStore::open_in_dir(&temp_dir).await.unwrap();
+
+        assert!(temp_dir.join("master.key").exists());
+        assert!(temp_dir.join("sqlcraft.db").exists());
+        assert!(temp_dir.join("config.json").exists());
+
+        let mut cfg = store.load_app_config().unwrap();
+        assert_eq!(cfg.theme, "light");
+        cfg.theme = "dark".to_string();
+        cfg.language = "en".to_string();
+        cfg.editor_font_size = 16;
+        cfg.folders = vec!["Local".to_string(), "Production".to_string()];
+        cfg.show_site_manager_on_startup = false;
+
+        store.save_app_config(&cfg).unwrap();
+        let reloaded = store.load_app_config().unwrap();
+        assert_eq!(reloaded, cfg);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

@@ -10,6 +10,10 @@ edition = "2021"
 name = "sqlcraft_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+default = []
+portable = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

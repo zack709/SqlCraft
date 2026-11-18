@@ -2,9 +2,9 @@ use tauri::State;
 
 use crate::drivers::ConnectionManager;
 use crate::models::{
-    BatchQueryResponse, ColumnInfo, ConnectionProfile, ConnectionTestResult, DatabaseInfo,
-    ForeignKeyInfo, IndexInfo, QueryResultSet, RoutineInfo, SavedQuery, SchemaInfo, SequenceInfo,
-    TableInfo, ViewInfo,
+    AppConfig, BatchQueryResponse, ColumnInfo, ConnectionProfile, ConnectionTestResult,
+    DatabaseInfo, ForeignKeyInfo, IndexInfo, QueryResultSet, RoutineInfo, SavedQuery, SchemaInfo,
+    SequenceInfo, TableInfo, ViewInfo,
 };
 use crate::storage::ProfileStore;
 
@@ -261,4 +261,17 @@ pub async fn delete_saved_query(
     query_id: String,
 ) -> Result<(), String> {
     state.store.delete_saved_query(&query_id).await
+}
+
+#[tauri::command]
+pub async fn get_app_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
+    state.store.load_app_config()
+}
+
+#[tauri::command]
+pub async fn save_app_config(
+    state: State<'_, AppState>,
+    config: AppConfig,
+) -> Result<AppConfig, String> {
+    state.store.save_app_config(&config)
 }

@@ -53,6 +53,8 @@ pub fn run() {
             commands::list_saved_queries,
             commands::save_query,
             commands::delete_saved_query,
+            commands::get_app_config,
+            commands::save_app_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running SqlCraft Tauri application");

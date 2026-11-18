@@ -193,3 +193,11 @@ export interface SavedQuery {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface AppConfig {
+  theme: "light" | "dark";
+  language: "zh-TW" | "en";
+  editorFontSize: number;
+  folders: string[];
+  showSiteManagerOnStartup: boolean;
+}

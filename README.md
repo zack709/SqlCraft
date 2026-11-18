@@ -65,7 +65,18 @@ npm run tauri dev
 
 # Build production installers (.msi/.exe, .deb/.AppImage, .dmg/.app)
 npm run tauri build
+
+# Build Windows Portable executable (stores config.json, sqlcraft.db, and master.key in ./config/)
+npx tauri build --no-bundle -- --features portable
 ```
+
+## Portable Mode (Windows)
+
+SqlCraft runs in **Portable Mode** automatically when:
+- Built with `--features portable` (`SqlCraft_<version>_x64-portable.zip`), **or**
+- A `config/` directory or `.portable` / `portable.txt` marker file exists next to `SqlCraft.exe`.
+
+In Portable Mode, all application preferences (`config.json`), encrypted site manager profiles & saved queries (`sqlcraft.db`), and the AES-256-GCM key (`master.key`) are stored in `<exe_dir>/config/`.
 
 ## Documentation
 
