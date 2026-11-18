@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
 import editorWorker from "monaco-editor/editor/editor.worker?worker";
 
+import { useWorkbenchStore } from "../store/workbenchStore";
 import type { DbKind } from "../types/database";
 
 if (typeof self !== "undefined" && !(self as unknown as { MonacoEnvironment?: unknown }).MonacoEnvironment) {
@@ -74,6 +75,7 @@ export function MonacoSqlEditor({
 }: MonacoSqlEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const { theme, editorFontSize } = useWorkbenchStore();
   const latestPropsRef = useRef({
     tables,
     views,
@@ -104,10 +106,10 @@ export function MonacoSqlEditor({
     const editor = monaco.editor.create(el, {
       value,
       language: lang,
-      theme: "vs",
+      theme: theme === "dark" ? "vs-dark" : "vs",
       automaticLayout: true,
       minimap: { enabled: false },
-      fontSize: 13,
+      fontSize: editorFontSize,
       fontFamily: '"JetBrains Mono", "Cascadia Code", Consolas, monospace',
       lineNumbersMinChars: 3,
       scrollBeyondLastLine: false,
@@ -174,6 +176,17 @@ export function MonacoSqlEditor({
     if (!model) return;
     monaco.editor.setModelLanguage(model, dialectToLanguageId(dbKind));
   }, [dbKind]);
+
+  // Sync theme (vs / vs-dark) and fontSize dynamically
+  useEffect(() => {
+    monaco.editor.setTheme(theme === "dark" ? "vs-dark" : "vs");
+  }, [theme]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.updateOptions({ fontSize: editorFontSize });
+  }, [editorFontSize]);
 
   // Register Schema-aware autocomplete provider per language
   useEffect(() => {

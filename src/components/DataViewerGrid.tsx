@@ -76,8 +76,8 @@ function parseCellInput(raw: string, original: CellValue | undefined): CellValue
 }
 
 export function DataViewerGrid({ tab }: DataViewerGridProps) {
-  const { profiles, refreshTableDataTab, applyGridChangeSet } = useWorkbenchStore();
-  const profile = profiles.find((p) => p.id === tab.profileId);
+  const { refreshTableDataTab, applyGridChangeSet, getProfileById } = useWorkbenchStore();
+  const profile = getProfileById(tab.profileId);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);

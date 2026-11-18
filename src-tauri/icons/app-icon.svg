@@ -1,0 +1,84 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sqBg" x1="64" y1="64" x2="960" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="sqBorder" x1="64" y1="64" x2="960" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.06" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="180" y1="240" x2="844" y2="784" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="mintGrad" x1="340" y1="280" x2="684" y2="744" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Dark Midnight macOS Squircle -->
+  <rect x="64" y="64" width="896" height="896" rx="205" fill="url(#sqBg)" />
+  <rect x="66" y="66" width="892" height="892" rx="203" fill="none" stroke="url(#sqBorder)" stroke-width="4" />
+
+  <!-- Left SQL Chevron Bracket "<" (Sky Cyan) -->
+  <path
+    d="M 338 308
+       L 186 482
+       C 170 500 170 524 186 542
+       L 338 716
+       C 356 736 388 736 406 716
+       C 424 696 424 666 406 646
+       L 288 512
+       L 406 378
+       C 424 358 424 328 406 308
+       C 388 288 356 288 338 308 Z"
+    fill="url(#cyanGrad)"
+  />
+
+  <!-- Right SQL Chevron Bracket ">" (Sky Cyan) -->
+  <path
+    d="M 686 308
+       L 838 482
+       C 854 500 854 524 838 542
+       L 686 716
+       C 668 736 636 736 618 716
+       C 600 696 600 666 618 646
+       L 736 512
+       L 618 378
+       C 600 358 600 328 618 308
+       C 636 288 668 288 686 308 Z"
+    fill="url(#cyanGrad)"
+  />
+
+  <!-- Center 3-Tier Geometric Database Core (Mint Emerald) -->
+  <g transform="translate(512, 512) scale(0.86)">
+    <!-- Top disc -->
+    <ellipse cx="0" cy="-126" rx="134" ry="44" fill="#6EE7B7" />
+    <!-- Upper cylinder band -->
+    <path
+      d="M -134 -88
+         A 134 44 0 0 0 134 -88
+         L 134 -30
+         A 134 44 0 0 1 -134 -30 Z"
+      fill="url(#mintGrad)"
+    />
+    <!-- Middle cylinder band -->
+    <path
+      d="M -134 6
+         A 134 44 0 0 0 134 6
+         L 134 64
+         A 134 44 0 0 1 -134 64 Z"
+      fill="#10B981"
+    />
+    <!-- Bottom cylinder band -->
+    <path
+      d="M -134 100
+         A 134 44 0 0 0 134 100
+         L 134 156
+         A 134 44 0 0 1 -134 156 Z"
+      fill="#059669"
+    />
+  </g>
+</svg>

@@ -50,7 +50,7 @@ impl PostgresDriver {
             .database(database);
 
         let ssl_mode = if !profile.ssl.use_ssl {
-            PgSslMode::Disable
+            PgSslMode::Prefer
         } else {
             match profile.ssl.mode {
                 SslMode::Disable => PgSslMode::Disable,

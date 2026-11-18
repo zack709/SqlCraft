@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../lib/i18n";
 import {
   Copy,
   Edit3,
@@ -10,16 +11,17 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
   Table2,
   Terminal,
   Trash2,
 } from "lucide-react";
 import {
+  makeDbKey,
   makeScopeKey,
   type ObjectCategory,
   useWorkbenchStore,
 } from "../store/workbenchStore";
+import { isMacOS } from "../utils/platform";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 
 function formatBytes(bytes?: number | null): string {
@@ -31,7 +33,10 @@ function formatBytes(bytes?: number | null): string {
 
 export function ObjectListPane() {
   const {
-    profiles,
+    sessionTabs,
+    activeSessionTabId,
+    openedDatabases,
+    databasesByProfile,
     connectionStates,
     connectionErrors,
     tablesByScope,
@@ -47,13 +52,15 @@ export function ObjectListPane() {
     selectScope,
     selectObject,
     loadScopeObjects,
+    openDatabase,
+    openConnectionModal,
+    language,
     openTableDataTab,
     openTableDesignTab,
     openNewTableDesignTab,
     openQueryTab,
     openSavedQueryTab,
     deleteSavedQuery,
-    connectProfile,
     dropTable,
     truncateTable,
     renameTable,
@@ -71,12 +78,19 @@ export function ObjectListPane() {
     newName: string;
   } | null>(null);
 
-  const profile = profiles.find((p) => p.id === selectedScope?.profileId) ?? null;
+  const activeSession =
+    sessionTabs.find((s) => s.id === activeSessionTabId) ?? sessionTabs[0] ?? null;
+  const profile =
+    useWorkbenchStore
+      .getState()
+      .getProfileById(selectedScope?.profileId ?? activeSession?.profileId) ?? null;
   const database = selectedScope?.database ?? null;
   const schema = selectedScope?.schema ?? null;
   const category: ObjectCategory = selectedScope?.category ?? "tables";
   const connStatus = profile ? connectionStates[profile.id] ?? "disconnected" : "disconnected";
   const connError = profile ? connectionErrors[profile.id] : "";
+  const isDbOpened =
+    profile && database ? !!openedDatabases[makeDbKey(profile.id, database)] : false;
 
   const scopeKey =
     profile && database ? makeScopeKey(profile.id, database, schema) : null;
@@ -87,20 +101,49 @@ export function ObjectListPane() {
   const sequences = scopeKey ? sequencesByScope[scopeKey] ?? [] : [];
 
   const filterLower = objectFilter.trim().toLowerCase();
+  const isMac = isMacOS();
 
-  // Welcome / Connect Prompt when no database is selected yet
-  if (!profile || !database || (connStatus !== "connected" && connStatus !== "demo")) {
+  if (connStatus === "connecting") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-[#f8fafc] p-8 text-center">
-        <div className="max-w-md rounded-lg border border-[#e2e8f0] bg-white p-6 shadow-sm">
-          <Table2 className="mx-auto h-10 w-10 text-[#2563eb]" />
+      <div
+        className={`flex flex-1 ${isMac ? "bg-[#f5f5f7]" : "bg-[#f8fafc]"}`}
+      />
+    );
+  }
+
+  // 1) When no site is connected yet -> Show Site Manager prompt
+  if (!profile || (connStatus !== "connected" && connStatus !== "demo")) {
+    return (
+      <div
+        className={`flex flex-1 flex-col items-center justify-center p-8 text-center ${
+          isMac ? "bg-[#f5f5f7]" : "bg-[#f8fafc]"
+        }`}
+      >
+        <div
+          className={`max-w-md border bg-white p-6 ${
+            isMac
+              ? "rounded-2xl border-black/10 shadow-md"
+              : "rounded-lg border-[#e2e8f0] shadow-sm"
+          }`}
+        >
+          <Table2
+            className={`mx-auto h-10 w-10 ${isMac ? "text-[#007aff]" : "text-[#2563eb]"}`}
+          />
           <h2 className="mt-3 text-sm font-semibold text-[#0f172a]">
-            {profile ? profile.name : "SqlCraft 跨平台資料庫工作台"}
+            {profile
+              ? profile.name
+              : language === "en"
+              ? "SqlCraft Cross-Platform Database Workbench"
+              : "SqlCraft 跨平台資料庫工作台"}
           </h2>
           <p className="mt-1.5 text-[11px] text-[#64748b]">
             {profile
-              ? `尚未開啟資料庫連線（${profile.host}:${profile.port}）。請連接真實資料庫，或載入離線範例結構瀏覽工作台介面。`
-              : "請在左側連線導覽樹雙擊任一連線，或建立新的 MySQL / MariaDB / PostgreSQL 連線。"}
+              ? language === "en"
+                ? `Not connected (${profile.host}:${profile.port}). Open Site Manager to connect.`
+                : `尚未開啟資料庫連線（${profile.host}:${profile.port}）。請連接真實資料庫，或載入離線範例結構瀏覽工作台介面。`
+              : language === "en"
+              ? "Open Site Manager to select or create a MySQL / MariaDB / PostgreSQL connection."
+              : "請開啟「站台管理」選擇或新增 MySQL / MariaDB / PostgreSQL 站台進行連線。"}
           </p>
 
           {connError && (
@@ -109,25 +152,84 @@ export function ObjectListPane() {
             </div>
           )}
 
-          {profile && (
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => void connectProfile(profile.id, false)}
-                className="rounded bg-[#2563eb] px-3.5 py-1.5 text-[11px] font-medium text-white hover:bg-[#1d4ed8]"
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => openConnectionModal(profile)}
+              className={`px-3.5 py-1.5 text-[11px] font-medium text-white ${
+                isMac
+                  ? "rounded-lg bg-[#007aff] hover:bg-[#0066cc]"
+                  : "rounded bg-[#2563eb] hover:bg-[#1d4ed8]"
+              }`}
+            >
+              {t(language, "openSiteManager")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2) Site is connected, but no Database has been double-clicked/opened yet -> Show Navicat Database list!
+  if (!database || !isDbOpened) {
+    const dbs = databasesByProfile[profile.id] ?? [];
+    return (
+      <div className="flex min-h-0 flex-1 flex-col bg-white p-4">
+        <div className="mb-3 flex items-center justify-between border-b border-[#e2e8f0] pb-2">
+          <div>
+            <h3 className="text-xs font-semibold text-[#111827]">
+              {language === "en"
+                ? `${profile.name} — Databases (${dbs.length})`
+                : `${profile.name} — 資料庫清單（共 ${dbs.length} 個資料庫）`}
+            </h3>
+            <p className="mt-0.5 text-[11px] text-[#64748b]">
+              {t(language, "selectDbPrompt")}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5 overflow-y-auto">
+          {dbs.map((db) => {
+            const opened = !!openedDatabases[makeDbKey(profile.id, db.name)];
+            const selected = database === db.name;
+            return (
+              <div
+                key={db.name}
+                onClick={() =>
+                  useWorkbenchStore.setState({
+                    selectedScope: {
+                      profileId: profile.id,
+                      database: db.name,
+                      schema: null,
+                      category: "tables",
+                      objectName: null,
+                    },
+                  })
+                }
+                onDoubleClick={() => void openDatabase(profile.id, db.name)}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-3 transition ${
+                  selected
+                    ? "border-[#2563eb] bg-[#eff6ff]"
+                    : "border-[#e2e8f0] bg-[#f8fafc] hover:border-[#93c5fd]"
+                }`}
               >
-                開啟連線
-              </button>
-              <button
-                type="button"
-                onClick={() => void connectProfile(profile.id, true)}
-                className="flex items-center gap-1.5 rounded border border-[#d8b4fe] bg-[#faf5ff] px-3.5 py-1.5 text-[11px] font-medium text-[#6d28d9] hover:bg-[#f3e8ff]"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                載入範例結構 (Demo)
-              </button>
-            </div>
-          )}
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white ${
+                    opened ? "bg-[#10b981]" : "bg-[#94a3b8]"
+                  }`}
+                >
+                  <Table2 className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-semibold text-[#111827]">{db.name}</div>
+                  <div className="truncate text-[10px] text-[#64748b]">
+                    {db.charset || "UTF-8"} ·{" "}
+                    {language === "en" ? "Double-click to open" : "點兩下開啟資料庫"}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -265,8 +367,14 @@ export function ObjectListPane() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      {/* ActionToolBar2 (26px height per navicat-ui-spec.md) */}
-      <div className="flex h-[26px] items-center justify-between border-b border-[#dcdfe6] bg-[#f8f9fb] px-2 text-[11px]">
+      {/* ActionToolBar2 */}
+      <div
+        className={`flex items-center justify-between border-b px-2.5 text-[11px] ${
+          isMac
+            ? "h-[32px] border-black/10 bg-[#f5f5f7]"
+            : "h-[26px] border-[#dcdfe6] bg-[#f8f9fb] px-2"
+        }`}
+      >
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -275,10 +383,12 @@ export function ObjectListPane() {
               selectedObjName &&
               void openTableDataTab(profile.id, database, schema, selectedObjName)
             }
-            className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-[#e2e8f0] disabled:opacity-40"
+            className={`flex items-center gap-1 px-2 py-0.5 disabled:opacity-40 ${
+              isMac ? "rounded-md hover:bg-black/6" : "rounded hover:bg-[#e2e8f0]"
+            }`}
           >
             <Table2 className="h-3 w-3 text-[#2563eb]" />
-            <span>開啟資料表</span>
+            <span>{t(language, "openTable")}</span>
           </button>
           <button
             type="button"
@@ -287,34 +397,42 @@ export function ObjectListPane() {
               selectedObjName &&
               void openTableDesignTab(profile.id, database, schema, selectedObjName)
             }
-            className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-[#e2e8f0] disabled:opacity-40"
+            className={`flex items-center gap-1 px-2 py-0.5 disabled:opacity-40 ${
+              isMac ? "rounded-md hover:bg-black/6" : "rounded hover:bg-[#e2e8f0]"
+            }`}
           >
             <Edit3 className="h-3 w-3 text-[#d97706]" />
-            <span>設計資料表</span>
+            <span>{t(language, "designTable")}</span>
           </button>
           <button
             type="button"
             onClick={() => openNewTableDesignTab(profile.id, database, schema)}
-            className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-[#e2e8f0]"
+            className={`flex items-center gap-1 px-2 py-0.5 ${
+              isMac ? "rounded-md hover:bg-black/6" : "rounded hover:bg-[#e2e8f0]"
+            }`}
           >
             <Plus className="h-3 w-3 text-[#2563eb]" />
-            <span>新增資料表</span>
+            <span>{t(language, "newTable")}</span>
           </button>
           <button
             type="button"
             onClick={() => openQueryTab(profile.id, database, schema)}
-            className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-[#e2e8f0]"
+            className={`flex items-center gap-1 px-2 py-0.5 ${
+              isMac ? "rounded-md hover:bg-black/6" : "rounded hover:bg-[#e2e8f0]"
+            }`}
           >
             <Plus className="h-3 w-3 text-[#16a34a]" />
-            <span>新增查詢</span>
+            <span>{t(language, "newQuery")}</span>
           </button>
           <button
             type="button"
             onClick={() => void loadScopeObjects(profile.id, database, schema)}
-            className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-[#e2e8f0]"
+            className={`flex items-center gap-1 px-2 py-0.5 ${
+              isMac ? "rounded-md hover:bg-black/6" : "rounded hover:bg-[#e2e8f0]"
+            }`}
           >
             <RefreshCw className="h-3 w-3 text-[#475569]" />
-            <span>重新整理</span>
+            <span>{t(language, "refresh")}</span>
           </button>
 
           <span className="mx-1 h-3.5 border-l border-[#cbd5e1]" />
@@ -322,11 +440,11 @@ export function ObjectListPane() {
           {/* Category Switcher */}
           {(
             [
-              { id: "tables", label: "資料表" },
-              { id: "views", label: "檢視表" },
-              { id: "routines", label: "函式" },
-              ...(isPg ? [{ id: "sequences", label: "序列" }] : []),
-              { id: "queries", label: "查詢" },
+              { id: "tables", label: t(language, "tables") },
+              { id: "views", label: t(language, "views") },
+              { id: "routines", label: t(language, "routines") },
+              ...(isPg ? [{ id: "sequences", label: t(language, "sequences") }] : []),
+              { id: "queries", label: t(language, "queries") },
             ] as { id: ObjectCategory; label: string }[]
           ).map((cat) => (
             <button
@@ -340,9 +458,15 @@ export function ObjectListPane() {
                   category: cat.id,
                 })
               }
-              className={`rounded px-2 py-0.5 text-[11px] ${
+              className={`px-2 py-0.5 text-[11px] ${
+                isMac ? "rounded-md" : "rounded"
+              } ${
                 category === cat.id
-                  ? "bg-[#dbeafe] font-semibold text-[#1d4ed8]"
+                  ? isMac
+                    ? "bg-white font-semibold text-[#0066cc] shadow-sm ring-1 ring-black/8"
+                    : "bg-[#dbeafe] font-semibold text-[#1d4ed8]"
+                  : isMac
+                  ? "text-[#48484a] hover:bg-black/6"
                   : "text-[#475569] hover:bg-[#e2e8f0]"
               }`}
             >
@@ -351,15 +475,21 @@ export function ObjectListPane() {
           ))}
         </div>
 
-        {/* Search + ViewMode 24px toggle */}
+        {/* Search + ViewMode toggle */}
         <div className="flex items-center gap-1.5">
-          <div className="flex h-[20px] w-40 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-1.5">
+          <div
+            className={`flex w-40 items-center gap-1 border bg-white px-2 ${
+              isMac
+                ? "h-[22px] rounded-full border-black/10"
+                : "h-[20px] rounded border-[#cbd5e1] px-1.5"
+            }`}
+          >
             <Search className="h-3 w-3 text-[#9ca3af]" />
             <input
               type="text"
               value={objectFilter}
               onChange={(e) => setObjectFilter(e.target.value)}
-              placeholder="篩選物件..."
+              placeholder={t(language, "filterObjects")}
               className="w-full bg-transparent text-[10px] outline-none"
             />
           </div>
@@ -369,8 +499,12 @@ export function ObjectListPane() {
             onClick={() =>
               setObjectViewMode(objectViewMode === "list" ? "grid" : "list")
             }
-            title="切換清單 / 圖示檢視"
-            className="flex h-[20px] w-[24px] items-center justify-center rounded border border-[#cbd5e1] bg-white hover:bg-[#f1f5f9]"
+            title={language === "en" ? "Toggle List / Grid View" : "切換清單 / 圖示檢視"}
+            className={`flex w-[24px] items-center justify-center border bg-white ${
+              isMac
+                ? "h-[22px] rounded-md border-black/10 hover:bg-black/4"
+                : "h-[20px] rounded border-[#cbd5e1] hover:bg-[#f1f5f9]"
+            }`}
           >
             {objectViewMode === "list" ? (
               <LayoutGrid className="h-3 w-3 text-[#475569]" />
@@ -406,7 +540,7 @@ export function ObjectListPane() {
                   <Table2 className="h-7 w-7 text-[#2563eb]" />
                   <span className="mt-1.5 w-full truncate font-medium">{tbl.name}</span>
                   <span className="text-[10px] text-[#64748b]">
-                    {tbl.rowsEstimate ?? 0} 列
+                    {tbl.rowsEstimate ?? 0} {language === "en" ? "rows" : "列"}
                   </span>
                 </div>
               );
@@ -418,21 +552,35 @@ export function ObjectListPane() {
               {category === "tables" && (
                 <tr>
                   <th className="w-[242px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    名稱
+                    {language === "en" ? "Name" : "名稱"}
                   </th>
                   <th className="w-[84px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    列
+                    {language === "en" ? "Rows" : "列"}
                   </th>
                   <th className="w-[98px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    資料長度
+                    {language === "en" ? "Data Length" : "資料長度"}
                   </th>
                   <th className="w-[96px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    {isPg ? "資料表空間" : "引擎"}
+                    {isPg
+                      ? language === "en"
+                        ? "Tablespace"
+                        : "資料表空間"
+                      : language === "en"
+                      ? "Engine"
+                      : "引擎"}
                   </th>
                   <th className="w-[136px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    {isPg ? "擁有者" : "修改日期"}
+                    {isPg
+                      ? language === "en"
+                        ? "Owner"
+                        : "擁有者"
+                      : language === "en"
+                      ? "Modified"
+                      : "修改日期"}
                   </th>
-                  <th className="px-2.5 font-medium">註解</th>
+                  <th className="px-2.5 font-medium">
+                    {language === "en" ? "Comment" : "註解"}
+                  </th>
                 </tr>
               )}
               {category === "views" && (

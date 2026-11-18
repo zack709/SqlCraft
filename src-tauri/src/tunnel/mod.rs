@@ -143,7 +143,7 @@ impl SshTunnelManager {
             .stderr(Stdio::piped());
 
         match ssh.auth_method {
-            SshAuthMethod::PrivateKey => {
+            SshAuthMethod::PrivateKey | SshAuthMethod::PasswordAndPrivateKey => {
                 if let Some(key_path) = ssh.private_key_path.as_deref().filter(|s| !s.trim().is_empty()) {
                     cmd.arg("-i").arg(key_path);
                 } else {

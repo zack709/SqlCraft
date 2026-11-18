@@ -5,6 +5,7 @@ import type {
   ConnectionProfile,
   ConnectionTestResult,
   DatabaseInfo,
+  DbKind,
   ForeignKeyInfo,
   IndexInfo,
   QueryResultSet,
@@ -15,6 +16,20 @@ import type {
   TableInfo,
   ViewInfo,
 } from "../types/database";
+
+function normalizeDbKind(raw: unknown): DbKind {
+  const s = String(raw || "mysql").toLowerCase();
+  if (s === "mariadb") return "mariadb";
+  if (s === "postgres" || s === "postgresql") return "postgres";
+  return "mysql";
+}
+
+function normalizeProfile(profile: ConnectionProfile): ConnectionProfile {
+  return {
+    ...profile,
+    dbKind: normalizeDbKind(profile.dbKind),
+  };
+}
 
 const BROWSER_PROFILES_KEY = "sqlcraft.browser_preview_profiles";
 
@@ -159,16 +174,20 @@ function writeBrowserSavedQueries(queries: SavedQuery[]): void {
 export const tauriApi = {
   async listProfiles(): Promise<ConnectionProfile[]> {
     if (!isTauriRuntime()) {
-      return readBrowserProfiles();
+      return readBrowserProfiles().map(normalizeProfile);
     }
-    return invoke<ConnectionProfile[]>("list_profiles");
+    const list = await invoke<ConnectionProfile[]>("list_profiles");
+    return list.map(normalizeProfile);
   },
 
   async saveProfile(profile: ConnectionProfile): Promise<ConnectionProfile> {
     if (!isTauriRuntime()) {
       const current = readBrowserProfiles();
       const idx = current.findIndex((p) => p.id === profile.id);
-      const updated = { ...profile, updatedAt: new Date().toISOString() };
+      const updated = normalizeProfile({
+        ...profile,
+        updatedAt: new Date().toISOString(),
+      });
       if (idx >= 0) {
         current[idx] = updated;
       } else {
@@ -177,7 +196,8 @@ export const tauriApi = {
       writeBrowserProfiles(current);
       return updated;
     }
-    return invoke<ConnectionProfile>("save_profile", { profile });
+    const saved = await invoke<ConnectionProfile>("save_profile", { profile });
+    return normalizeProfile(saved);
   },
 
   async deleteProfile(profileId: string): Promise<void> {
@@ -215,6 +235,19 @@ export const tauriApi = {
       };
     }
     return invoke<ConnectionTestResult>("connect_profile", { profileId });
+  },
+
+  async connectAdhocProfile(profile: ConnectionProfile): Promise<ConnectionTestResult> {
+    if (!isTauriRuntime()) {
+      return {
+        success: false,
+        dbKind: profile.dbKind,
+        serverVersion: null,
+        latencyMs: 0,
+        message: "Browser preview mode: launch via `npm run tauri dev` to connect to databases.",
+      };
+    }
+    return invoke<ConnectionTestResult>("connect_adhoc_profile", { profile });
   },
 
   async disconnectProfile(profileId: string): Promise<void> {

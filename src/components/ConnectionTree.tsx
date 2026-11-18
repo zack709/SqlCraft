@@ -3,25 +3,22 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  Database,
   Edit3,
-  Eye,
-  FileCode2,
-  Folder,
   FolderOpen,
   Layers,
-  ListOrdered,
   Loader2,
   Play,
-  Plug,
+  Plus,
   PowerOff,
   RefreshCw,
   Search,
-  Sparkles,
-  Table2,
+  Server,
   Terminal,
   Trash2,
+  X,
+  XCircle,
 } from "lucide-react";
+import { t } from "../lib/i18n";
 import {
   makeDbKey,
   makeScopeKey,
@@ -29,22 +26,171 @@ import {
   useWorkbenchStore,
 } from "../store/workbenchStore";
 import type { ConnectionProfile } from "../types/database";
+import { isMacOS } from "../utils/platform";
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { DbEngineIcon } from "./DbEngineIcon";
 
 interface ConnectionTreeProps {
   width: number;
 }
 
-const DB_BADGE: Record<ConnectionProfile["dbKind"], { label: string; color: string }> = {
-  mysql: { label: "MySQL", color: "#2563eb" },
-  mariadb: { label: "MariaDB", color: "#0d9488" },
-  postgres: { label: "PG", color: "#4f46e5" },
-};
+/** Navicat-style 3-tier Database Cylinder Icon (Green when opened, Gray when closed) */
+function NavicatDbCylinderIcon({ opened }: { opened: boolean }) {
+  const topColor = opened ? "#34d399" : "#cbd5e1";
+  const tier1 = opened ? "#10b981" : "#94a3b8";
+  const tier2 = opened ? "#059669" : "#64748b";
+  const tier3 = opened ? "#047857" : "#475569";
+
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      {/* Bottom tier */}
+      <path
+        d="M3 12.2v3.1C3 16.8 6.13 18 10 18s7-1.2 7-2.7v-3.1c0 1.5-3.13 2.7-7 2.7s-7-1.2-7-2.7z"
+        fill={tier3}
+      />
+      {/* Middle tier */}
+      <path
+        d="M3 8.4v3.1c0 1.5 3.13 2.7 7 2.7s7-1.2 7-2.7V8.4c0 1.5-3.13 2.7-7 2.7S3 9.9 3 8.4z"
+        fill={tier2}
+      />
+      {/* Upper tier */}
+      <path
+        d="M3 4.7v3.1c0 1.5 3.13 2.7 7 2.7s7-1.2 7-2.7V4.7c0 1.5-3.13 2.7-7 2.7S3 6.2 3 4.7z"
+        fill={tier1}
+      />
+      {/* Top cap */}
+      <ellipse cx="10" cy="4.7" rx="7" ry="2.5" fill={topColor} />
+    </svg>
+  );
+}
+
+/** Navicat-style Blue Table Grid Icon */
+function NavicatTableIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      <rect x="2" y="2" width="16" height="16" rx="2.5" fill="#60a5fa" />
+      <path
+        d="M2 4.5C2 3.12 3.12 2 4.5 2h11C16.88 2 18 3.12 18 4.5V6H2V4.5z"
+        fill="#1d4ed8"
+      />
+      {/* Grid cells */}
+      <rect x="3.5" y="7.5" width="3.6" height="2.4" rx="0.4" fill="#dbeafe" />
+      <rect x="8.2" y="7.5" width="3.6" height="2.4" rx="0.4" fill="#bfdbfe" />
+      <rect x="12.9" y="7.5" width="3.6" height="2.4" rx="0.4" fill="#93c5fd" />
+      <rect x="3.5" y="10.8" width="3.6" height="2.4" rx="0.4" fill="#bfdbfe" />
+      <rect x="8.2" y="10.8" width="3.6" height="2.4" rx="0.4" fill="#dbeafe" />
+      <rect x="12.9" y="10.8" width="3.6" height="2.4" rx="0.4" fill="#bfdbfe" />
+      <rect x="3.5" y="14.1" width="3.6" height="2.4" rx="0.4" fill="#93c5fd" />
+      <rect x="8.2" y="14.1" width="3.6" height="2.4" rx="0.4" fill="#bfdbfe" />
+      <rect x="12.9" y="14.1" width="3.6" height="2.4" rx="0.4" fill="#dbeafe" />
+    </svg>
+  );
+}
+
+/** Navicat-style View Icon (Blue Grid + Glasses) */
+function NavicatViewIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      <rect x="2" y="2" width="15" height="14" rx="2.5" fill="#60a5fa" />
+      <path
+        d="M2 4.5C2 3.12 3.12 2 4.5 2h10C15.88 2 17 3.12 17 4.5V5.8H2V4.5z"
+        fill="#2563eb"
+      />
+      <rect x="3.5" y="7" width="3.5" height="2.2" rx="0.4" fill="#dbeafe" />
+      <rect x="8" y="7" width="3.5" height="2.2" rx="0.4" fill="#bfdbfe" />
+      <rect x="3.5" y="10.2" width="3.5" height="2.2" rx="0.4" fill="#bfdbfe" />
+      {/* Glasses overlay */}
+      <circle cx="9.5" cy="15.2" r="2.8" fill="#1d4ed8" stroke="#eff6ff" strokeWidth="1.1" />
+      <circle cx="15.5" cy="15.2" r="2.8" fill="#1d4ed8" stroke="#eff6ff" strokeWidth="1.1" />
+      <line x1="12.1" y1="15.2" x2="12.9" y2="15.2" stroke="#eff6ff" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/** Navicat-style Function (fx) Icon */
+function NavicatFunctionIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      <path
+        d="M9.5 3.5c-1.8 0-2.7 1.1-3 2.9L5.8 10H3.8v1.8h1.7l-.7 4.2c-.2 1-.6 1.4-1.4 1.4-.4 0-.7-.1-1-.2l-.3 1.6c.4.2 1 .3 1.6.3 1.9 0 2.9-1.1 3.3-3.1l.7-4.2h2.4V10H8l.6-3.4c.2-1 .6-1.4 1.4-1.4.4 0 .8.1 1.1.2l.3-1.6c-.4-.2-1.1-.3-1.9-.3z"
+        fill="#0ea5e9"
+      />
+      <path
+        d="M12.2 11.2l2.1 2.9-2.2 2.9h1.9l1.3-1.8 1.3 1.8h1.9l-2.2-2.9 2.1-2.9h-1.9l-1.2 1.7-1.2-1.7h-1.9z"
+        fill="#38bdf8"
+      />
+    </svg>
+  );
+}
+
+/** Navicat-style Event (Green Clock) Icon */
+function NavicatEventIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      <circle cx="10" cy="10" r="8" fill="#22c55e" />
+      <circle cx="10" cy="10" r="6" fill="#f0fdf4" />
+      <line
+        x1="10"
+        y1="10"
+        x2="10"
+        y2="6.2"
+        stroke="#15803d"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="10"
+        y1="10"
+        x2="6.8"
+        y2="10"
+        stroke="#15803d"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="10"
+        y1="10"
+        x2="13.2"
+        y2="13.2"
+        stroke="#f97316"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Navicat-style Query (Overlapping Orange & Blue Grids) Icon */
+function NavicatQueryIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0">
+      {/* Back orange grid */}
+      <rect x="7" y="2" width="11" height="10" rx="2" fill="#fb923c" />
+      <path
+        d="M7 4C7 2.9 7.9 2 9 2h7c1.1 0 2 .9 2 2v1.2H7V4z"
+        fill="#ea580c"
+      />
+      {/* Front blue grid */}
+      <rect x="2" y="8" width="11" height="10" rx="2" fill="#60a5fa" />
+      <path
+        d="M2 10c0-1.1.9-2 2-2h7c1.1 0 2 .9 2 2v1.2H2V10z"
+        fill="#2563eb"
+      />
+      <rect x="3.5" y="12.2" width="3.5" height="2" rx="0.3" fill="#dbeafe" />
+      <rect x="8" y="12.2" width="3.5" height="2" rx="0.3" fill="#bfdbfe" />
+      <rect x="3.5" y="15" width="3.5" height="2" rx="0.3" fill="#bfdbfe" />
+      <rect x="8" y="15" width="3.5" height="2" rx="0.3" fill="#dbeafe" />
+    </svg>
+  );
+}
 
 export function ConnectionTree({ width }: ConnectionTreeProps) {
   const {
-    profiles,
+    sessionTabs,
+    activeSessionTabId,
+    openedDatabases,
     connectionStates,
+    connectionErrors,
     databasesByProfile,
     schemasByDb,
     tablesByScope,
@@ -56,24 +202,28 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
     expandedNodes,
     selectedScope,
     treeFilter,
+    theme,
+    language,
     setTreeFilter,
-    connectProfile,
-    disconnectProfile,
     openConnectionModal,
-    deleteProfile,
-    duplicateProfile,
+    cancelConnection,
     loadDatabases,
     loadSchemas,
     loadScopeObjects,
+    openDatabase,
+    closeDatabase,
     setNodeExpanded,
     toggleNodeExpanded,
     selectScope,
     selectObject,
     openTableDataTab,
     openTableDesignTab,
+    openNewTableDesignTab,
     openQueryTab,
     openSavedQueryTab,
     deleteSavedQuery,
+    dropTable,
+    truncateTable,
   } = useWorkbenchStore();
 
   const [menuState, setMenuState] = useState<{
@@ -81,43 +231,63 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
     y: number;
     items: ContextMenuItem[];
   } | null>(null);
+  const [focusedNodeKey, setFocusedNodeKey] = useState<string | null>(null);
 
+  const isMac = isMacOS();
+  const isDark = theme === "dark";
   const filterLower = treeFilter.trim().toLowerCase();
 
-  const handleToggleConnection = async (profile: ConnectionProfile) => {
-    const key = `conn:${profile.id}`;
-    const status = connectionStates[profile.id] ?? "disconnected";
-    if (status !== "connected" && status !== "demo") {
-      const ok = await connectProfile(profile.id, false);
-      if (!ok) return;
+  // Active Site Session
+  const activeSession =
+    sessionTabs.find((s) => s.id === activeSessionTabId) ?? sessionTabs[0] ?? null;
+  const activeProfile =
+    useWorkbenchStore.getState().getProfileById(activeSession?.profileId) ??
+    useWorkbenchStore.getState().getProfileById(selectedScope?.profileId) ??
+    null;
+
+  const isSiteConnected =
+    activeProfile != null &&
+    (connectionStates[activeProfile.id] === "connected" ||
+      connectionStates[activeProfile.id] === "demo");
+
+  const handleDoubleClickDatabase = async (
+    profile: ConnectionProfile,
+    dbName: string
+  ) => {
+    const dbKey = makeDbKey(profile.id, dbName);
+    const isOpened = !!openedDatabases[dbKey];
+    const nodeKey = `db:${dbKey}`;
+
+    if (!isOpened) {
+      await openDatabase(profile.id, dbName);
       return;
     }
-    toggleNodeExpanded(key);
+
+    toggleNodeExpanded(nodeKey);
   };
 
-  const handleToggleDatabase = async (profile: ConnectionProfile, dbName: string) => {
+  const handleSingleClickDatabase = (profile: ConnectionProfile, dbName: string) => {
     const dbKey = makeDbKey(profile.id, dbName);
-    const nodeKey = `db:${dbKey}`;
-    const next = !expandedNodes[nodeKey];
-    setNodeExpanded(nodeKey, next);
-
-    if (next) {
-      if (profile.dbKind === "postgres") {
-        if (!schemasByDb[dbKey]) {
-          await loadSchemas(profile.id, dbName);
-        }
-      } else {
-        const sKey = makeScopeKey(profile.id, dbName, null);
-        if (!tablesByScope[sKey]) {
-          await loadScopeObjects(profile.id, dbName, null);
-        }
-        await selectScope({
+    setFocusedNodeKey(`db:${dbKey}`);
+    const isOpened = !!openedDatabases[dbKey];
+    if (isOpened) {
+      void selectScope({
+        profileId: profile.id,
+        database: dbName,
+        schema: profile.dbKind === "postgres" ? "public" : null,
+        category: selectedScope?.category ?? "tables",
+        objectName: null,
+      });
+    } else {
+      useWorkbenchStore.setState({
+        selectedScope: {
           profileId: profile.id,
           database: dbName,
           schema: null,
           category: "tables",
-        });
-      }
+          objectName: null,
+        },
+      });
     }
   };
 
@@ -128,6 +298,7 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
   ) => {
     const sKey = makeScopeKey(profile.id, dbName, schemaName);
     const nodeKey = `schema:${sKey}`;
+    setFocusedNodeKey(nodeKey);
     const next = !expandedNodes[nodeKey];
     setNodeExpanded(nodeKey, next);
 
@@ -142,78 +313,11 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
     });
   };
 
-  const openConnectionMenu = (e: React.MouseEvent, profile: ConnectionProfile) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const status = connectionStates[profile.id] ?? "disconnected";
-    const isActive = status === "connected" || status === "demo";
-
-    setMenuState({
-      x: e.clientX,
-      y: e.clientY,
-      items: [
-        isActive
-          ? {
-              id: "close-conn",
-              label: "關閉連線",
-              icon: <PowerOff className="h-3.5 w-3.5" />,
-              onClick: () => void disconnectProfile(profile.id),
-            }
-          : {
-              id: "open-conn",
-              label: "開啟連線",
-              icon: <Plug className="h-3.5 w-3.5 text-[#16a34a]" />,
-              onClick: () => void connectProfile(profile.id, false),
-            },
-        {
-          id: "open-demo",
-          label: "載入範例結構 (Demo)",
-          icon: <Sparkles className="h-3.5 w-3.5 text-[#7c3aed]" />,
-          onClick: () => void connectProfile(profile.id, true),
-        },
-        { id: "div-1", divider: true },
-        {
-          id: "new-query",
-          label: "新增查詢",
-          icon: <Terminal className="h-3.5 w-3.5 text-[#059669]" />,
-          onClick: () => openQueryTab(profile.id, profile.initialDatabase ?? null, null),
-        },
-        {
-          id: "refresh-conn",
-          label: "重新整理資料庫",
-          icon: <RefreshCw className="h-3.5 w-3.5" />,
-          disabled: !isActive,
-          onClick: () => void loadDatabases(profile.id),
-        },
-        { id: "div-2", divider: true },
-        {
-          id: "edit-conn",
-          label: "編輯連線...",
-          icon: <Edit3 className="h-3.5 w-3.5" />,
-          onClick: () => openConnectionModal(profile),
-        },
-        {
-          id: "dup-conn",
-          label: "複製連線",
-          icon: <Copy className="h-3.5 w-3.5" />,
-          onClick: () => void duplicateProfile(profile),
-        },
-        { id: "div-3", divider: true },
-        {
-          id: "del-conn",
-          label: "刪除連線",
-          icon: <Trash2 className="h-3.5 w-3.5" />,
-          danger: true,
-          onClick: () => void deleteProfile(profile.id),
-        },
-      ],
-    });
-  };
-
   const renderCategoryChildren = (
     profile: ConnectionProfile,
     database: string,
-    schema: string | null
+    schema: string | null,
+    baseIndent: number
   ) => {
     const scopeKey = makeScopeKey(profile.id, database, schema);
     const tables = tablesByScope[scopeKey] ?? [];
@@ -221,69 +325,79 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
     const routines = routinesByScope[scopeKey] ?? [];
     const sequences = sequencesByScope[scopeKey] ?? [];
 
-    const categories: {
-      id: ObjectCategory;
-      label: string;
-      count: number;
-      icon: React.ReactNode;
-      items: string[];
-    }[] = [
-      {
-        id: "tables",
-        label: "資料表",
-        count: tables.length,
-        icon: <Table2 className="h-3.5 w-3.5 text-[#2563eb]" />,
-        items: tables.map((t) => t.name),
-      },
-      {
-        id: "views",
-        label: "檢視表",
-        count: views.length,
-        icon: <Eye className="h-3.5 w-3.5 text-[#0891b2]" />,
-        items: views.map((v) => v.name),
-      },
-      {
-        id: "routines",
-        label: "函式",
-        count: routines.length,
-        icon: <FileCode2 className="h-3.5 w-3.5 text-[#7c3aed]" />,
-        items: routines.map((r) => r.name),
-      },
-    ];
-
-    if (profile.dbKind === "postgres") {
-      categories.push({
-        id: "sequences",
-        label: "序列",
-        count: sequences.length,
-        icon: <ListOrdered className="h-3.5 w-3.5 text-[#d97706]" />,
-        items: sequences.map((s) => s.name),
-      });
-    }
-
     const scopeSavedQueries = savedQueries.filter(
       (q) =>
         q.profileId === profile.id &&
         (!q.databaseName || q.databaseName === database) &&
         (!schema || !q.schemaName || q.schemaName === schema)
     );
-    categories.push({
-      id: "queries",
-      label: "查詢",
-      count: scopeSavedQueries.length,
-      icon: <Terminal className="h-3.5 w-3.5 text-[#059669]" />,
-      items: scopeSavedQueries.map((q) => q.title),
-    });
+
+    const categories: {
+      id: ObjectCategory;
+      label: string;
+      count: number;
+      icon: React.ReactNode;
+      itemIcon: React.ReactNode;
+      items: string[];
+    }[] = [
+      {
+        id: "tables",
+        label: t(language, "tables"),
+        count: tables.length,
+        icon: <NavicatTableIcon />,
+        itemIcon: <NavicatTableIcon />,
+        items: tables.map((t) => t.name),
+      },
+      {
+        id: "views",
+        label: t(language, "views"),
+        count: views.length,
+        icon: <NavicatViewIcon />,
+        itemIcon: <NavicatViewIcon />,
+        items: views.map((v) => v.name),
+      },
+      {
+        id: "routines",
+        label: t(language, "routines"),
+        count: routines.length,
+        icon: <NavicatFunctionIcon />,
+        itemIcon: <NavicatFunctionIcon />,
+        items: routines.map((r) => r.name),
+      },
+      {
+        id: "events",
+        label: t(language, "events"),
+        count: 0,
+        icon: <NavicatEventIcon />,
+        itemIcon: <NavicatEventIcon />,
+        items: [],
+      },
+      {
+        id: "queries",
+        label: t(language, "queries"),
+        count: scopeSavedQueries.length,
+        icon: <NavicatQueryIcon />,
+        itemIcon: <NavicatQueryIcon />,
+        items: scopeSavedQueries.map((q) => q.title),
+      },
+    ];
+
+    if (profile.dbKind === "postgres" && sequences.length > 0) {
+      categories.splice(4, 0, {
+        id: "sequences",
+        label: t(language, "sequences"),
+        count: sequences.length,
+        icon: <NavicatEventIcon />,
+        itemIcon: <NavicatEventIcon />,
+        items: sequences.map((s) => s.name),
+      });
+    }
 
     return categories.map((cat) => {
       const catNodeKey = `cat:${scopeKey}:${cat.id}`;
       const isCatExpanded = !!expandedNodes[catNodeKey];
       const isSelected =
-        selectedScope?.profileId === profile.id &&
-        selectedScope?.database === database &&
-        (selectedScope?.schema || null) === (schema || null) &&
-        selectedScope?.category === cat.id &&
-        !selectedScope?.objectName;
+        focusedNodeKey === catNodeKey && !selectedScope?.objectName;
 
       const filteredItems = filterLower
         ? cat.items.filter((name) => name.toLowerCase().includes(filterLower))
@@ -293,27 +407,88 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
         <div key={catNodeKey}>
           <div
             onClick={() => {
+              setFocusedNodeKey(catNodeKey);
               void selectScope({
                 profileId: profile.id,
                 database,
                 schema,
                 category: cat.id,
+                objectName: null,
               });
-              toggleNodeExpanded(catNodeKey);
             }}
-            className={`flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-[11px] ${
-              isSelected ? "bg-[#dbeafe] text-[#1e3a8a] font-medium" : "hover:bg-[#eef2f7]"
+            onDoubleClick={() => toggleNodeExpanded(catNodeKey)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (cat.id === "tables") {
+                setMenuState({
+                  x: e.clientX,
+                  y: e.clientY,
+                  items: [
+                    {
+                      id: "new-table",
+                      label: "新增資料表...",
+                      icon: <Plus className="h-3.5 w-3.5 text-[#2563eb]" />,
+                      onClick: () => openNewTableDesignTab(profile.id, database, schema),
+                    },
+                    {
+                      id: "refresh-tables",
+                      label: "重新整理",
+                      icon: <RefreshCw className="h-3.5 w-3.5" />,
+                      onClick: () => void loadScopeObjects(profile.id, database, schema),
+                    },
+                  ],
+                });
+              } else if (cat.id === "queries") {
+                setMenuState({
+                  x: e.clientX,
+                  y: e.clientY,
+                  items: [
+                    {
+                      id: "new-q",
+                      label: "新增查詢...",
+                      icon: <Terminal className="h-3.5 w-3.5 text-[#10b981]" />,
+                      onClick: () => openQueryTab(profile.id, database, schema),
+                    },
+                  ],
+                });
+              }
+            }}
+            className={`flex cursor-pointer items-center gap-2 px-1.5 py-1 text-[12px] ${
+              isMac ? "rounded-lg" : "rounded"
+            } ${
+              isSelected
+                ? isDark
+                  ? "bg-[#2563eb]/35 text-white font-medium"
+                  : isMac
+                  ? "bg-[#007aff]/14 text-[#0055d4] font-medium"
+                  : "bg-[#dbeafe] text-[#1e3a8a] font-medium"
+                : isDark
+                ? "text-[#e4e4e7] hover:bg-white/8"
+                : isMac
+                ? "hover:bg-black/5"
+                : "hover:bg-[#eef2f7]"
             }`}
-            style={{ paddingLeft: profile.dbKind === "postgres" ? 44 : 30 }}
+            style={{ paddingLeft: baseIndent }}
           >
-            {isCatExpanded ? (
-              <ChevronDown className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-            ) : (
-              <ChevronRight className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-            )}
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNodeExpanded(catNodeKey);
+              }}
+              className="flex shrink-0 items-center"
+            >
+              {isCatExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5 text-[#64748b]" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-[#64748b]" />
+              )}
+            </span>
             {cat.icon}
             <span className="truncate">{cat.label}</span>
-            <span className="ml-auto text-[10px] text-[#94a3b8]">{cat.count}</span>
+            {cat.count > 0 && (
+              <span className="ml-auto text-[10px] text-[#94a3b8]">{cat.count}</span>
+            )}
           </div>
 
           {isCatExpanded &&
@@ -342,6 +517,8 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    void selectObject(profile.id, database, schema, cat.id, objName);
+
                     if (cat.id === "queries") {
                       const found = scopeSavedQueries.find((q) => q.title === objName);
                       if (found) {
@@ -367,6 +544,7 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                       }
                       return;
                     }
+
                     if (cat.id === "tables") {
                       setMenuState({
                         x: e.clientX,
@@ -374,21 +552,28 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                         items: [
                           {
                             id: "open-table",
-                            label: "開啟資料表",
-                            icon: <Table2 className="h-3.5 w-3.5 text-[#2563eb]" />,
+                            label: t(language, "openTable"),
+                            icon: <NavicatTableIcon />,
                             onClick: () =>
                               void openTableDataTab(profile.id, database, schema, objName),
                           },
                           {
                             id: "design-table",
-                            label: "設計資料表",
+                            label: t(language, "designTable"),
                             icon: <Edit3 className="h-3.5 w-3.5 text-[#d97706]" />,
                             onClick: () =>
                               void openTableDesignTab(profile.id, database, schema, objName),
                           },
                           {
+                            id: "new-table",
+                            label: t(language, "newTable"),
+                            icon: <Plus className="h-3.5 w-3.5 text-[#2563eb]" />,
+                            onClick: () =>
+                              openNewTableDesignTab(profile.id, database, schema),
+                          },
+                          {
                             id: "query-table",
-                            label: "產生 SELECT 查詢",
+                            label: language === "en" ? "Generate SELECT Query" : "產生 SELECT 查詢",
                             icon: <Play className="h-3.5 w-3.5 text-[#16a34a]" />,
                             onClick: () =>
                               openQueryTab(
@@ -400,25 +585,52 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                                   : `SELECT * FROM \`${database}\`.\`${objName}\` LIMIT 100;`
                               ),
                           },
-                          { id: "div-t", divider: true },
+                          { id: "div-t1", divider: true },
                           {
                             id: "copy-name",
-                            label: "複製名稱",
+                            label: language === "en" ? "Copy Table Name" : "複製資料表名稱",
                             icon: <Copy className="h-3.5 w-3.5" />,
                             onClick: () => void navigator.clipboard?.writeText(objName),
+                          },
+                          { id: "div-t2", divider: true },
+                          {
+                            id: "truncate-table",
+                            label: language === "en" ? "Truncate Table" : "清空資料表 (Truncate)",
+                            icon: <Trash2 className="h-3.5 w-3.5 text-[#d97706]" />,
+                            danger: true,
+                            onClick: () =>
+                              void truncateTable(profile.id, database, schema, objName),
+                          },
+                          {
+                            id: "drop-table",
+                            label: language === "en" ? "Drop Table" : "刪除資料表 (Drop)",
+                            icon: <Trash2 className="h-3.5 w-3.5" />,
+                            danger: true,
+                            onClick: () =>
+                              void dropTable(profile.id, database, schema, objName),
                           },
                         ],
                       });
                     }
                   }}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] ${
+                  className={`flex cursor-pointer items-center gap-2 px-1.5 py-1 text-[11px] ${
+                    isMac ? "rounded-lg" : "rounded"
+                  } ${
                     objSelected
-                      ? "bg-[#dbeafe] text-[#1e3a8a] font-medium"
+                      ? isDark
+                        ? "bg-[#2563eb]/35 text-white font-medium"
+                        : isMac
+                        ? "bg-[#007aff]/14 text-[#0055d4] font-medium"
+                        : "bg-[#dbeafe] text-[#1e3a8a] font-medium"
+                      : isDark
+                      ? "text-[#d4d4d8] hover:bg-white/8"
+                      : isMac
+                      ? "hover:bg-black/5"
                       : "hover:bg-[#eef2f7]"
                   }`}
-                  style={{ paddingLeft: profile.dbKind === "postgres" ? 60 : 46 }}
+                  style={{ paddingLeft: baseIndent + 18 }}
                 >
-                  {cat.icon}
+                  {cat.itemIcon}
                   <span className="truncate">{objName}</span>
                 </div>
               );
@@ -428,272 +640,338 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
     });
   };
 
+  const dbs = activeProfile ? databasesByProfile[activeProfile.id] ?? [] : [];
+  const filteredDbs = filterLower
+    ? dbs.filter((db) => {
+        if (db.name.toLowerCase().includes(filterLower)) return true;
+        const sKey = makeScopeKey(
+          activeProfile!.id,
+          db.name,
+          activeProfile!.dbKind === "postgres" ? "public" : null
+        );
+        return (tablesByScope[sKey] ?? []).some((t) =>
+          t.name.toLowerCase().includes(filterLower)
+        );
+      })
+    : dbs;
+
   return (
     <aside
       style={{ width }}
-      className="flex flex-shrink-0 flex-col border-r border-[#d4d8e0] bg-[#fbfcfd]"
+      className={`flex flex-shrink-0 flex-col border-r select-none ${
+        isMac
+          ? isDark
+            ? "border-white/10 bg-[#202023]"
+            : "border-black/10 bg-[#f2f2f7]"
+          : isDark
+          ? "border-[#333336] bg-[#1e1e22]"
+          : "border-[#d4d8e0] bg-[#fbfcfd]"
+      }`}
     >
-      {/* Header */}
-      <div className="flex h-[28px] items-center justify-between border-b border-[#e5e7eb] px-2.5 text-[11px] font-semibold text-[#374151]">
-        <span>連線導覽</span>
-        <button
-          type="button"
-          onClick={() => openConnectionModal(null)}
-          title="新建連線"
-          className="rounded px-1.5 py-0.5 text-[10px] font-medium text-[#2563eb] hover:bg-[#eff6ff]"
-        >
-          + 新建
-        </button>
+      {/* Sidebar Header: Active Site Name & Quick Actions */}
+      <div
+        className={`flex items-center justify-between border-b px-2.5 text-[11px] font-semibold ${
+          isMac
+            ? isDark
+              ? "h-9 border-white/10 text-[#e4e4e7]"
+              : "h-9 border-black/10 text-[#3a3a3c]"
+            : isDark
+            ? "h-[28px] border-[#333336] text-[#e4e4e7]"
+            : "h-[28px] border-[#e5e7eb] text-[#374151]"
+        }`}
+      >
+        <div className="flex min-w-0 items-center gap-1.5">
+          {activeProfile && isSiteConnected ? (
+            <DbEngineIcon kind={activeProfile.dbKind} size={18} connected />
+          ) : (
+            <Server className="h-3.5 w-3.5 shrink-0 text-[#38bdf8]" />
+          )}
+          <span className="truncate">
+            {activeProfile && isSiteConnected
+              ? activeProfile.name
+              : activeProfile
+              ? activeProfile.name
+              : t(language, "dbExplorer")}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          {activeProfile && isSiteConnected && (
+            <button
+              type="button"
+              onClick={() => void loadDatabases(activeProfile.id)}
+              title={t(language, "refresh")}
+              className="rounded p-1 opacity-75 hover:bg-black/10 hover:opacity-100"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* TVirtualStringTree equivalent */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-1 py-1.5">
-        {profiles
-          .filter(
-            (p) =>
-              !filterLower ||
-              p.name.toLowerCase().includes(filterLower) ||
-              (databasesByProfile[p.id] ?? []).some((d) =>
-                d.name.toLowerCase().includes(filterLower)
-              ) ||
-              !!expandedNodes[`conn:${p.id}`]
-          )
-          .map((profile) => {
-            const connKey = `conn:${profile.id}`;
-            const status = connectionStates[profile.id] ?? "disconnected";
-            const isConnected = status === "connected" || status === "demo";
-            const isConnecting = status === "connecting";
-            const isExpanded = !!expandedNodes[connKey];
-            const dbs = databasesByProfile[profile.id] ?? [];
-            const badge = DB_BADGE[profile.dbKind];
+      {/* Tree Body: Databases -> (Double-Click to Open) -> Tables / Views / Functions / Events / Queries */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-1.5">
+        {activeProfile && connectionStates[activeProfile.id] === "connecting" ? (
+          <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+            <Loader2 className="h-7 w-7 animate-spin text-[#2563eb]" />
+            <p
+              className={`mt-3 text-xs font-semibold ${
+                isDark ? "text-[#f4f4f5]" : "text-[#0f172a]"
+              }`}
+            >
+              {t(language, "connectingTo")} {activeProfile.name}...
+            </p>
+            <p className="mt-1 text-[11px] text-[#64748b]">
+              {t(language, "connectingHint")}
+            </p>
+            <button
+              type="button"
+              onClick={() => cancelConnection(activeProfile.id)}
+              className={`mt-3.5 inline-flex items-center gap-1.5 border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                isMac ? "rounded-lg" : "rounded"
+              } ${
+                isDark
+                  ? "border-[#3f3f46] bg-[#27272a] text-[#f4f4f5] hover:bg-[#3f3f46]"
+                  : "border-[#cbd5e1] bg-white text-[#1f2329] hover:bg-[#f1f5f9]"
+              }`}
+            >
+              <X className="h-3.5 w-3.5 text-[#ef4444]" />
+              <span>{t(language, "cancelConnection")}</span>
+            </button>
+          </div>
+        ) : activeProfile && connectionStates[activeProfile.id] === "error" ? (
+          <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+            <XCircle className="h-7 w-7 text-[#ef4444]" />
+            <p className="mt-2.5 text-xs font-semibold text-[#ef4444]">
+              {t(language, "connectionFailed")}
+            </p>
+            {connectionErrors[activeProfile.id] && (
+              <p className="mt-1.5 max-h-28 overflow-y-auto break-all rounded border border-[#fecaca]/40 bg-[#ef4444]/10 p-2 text-[10px] font-mono text-[#fca5a5]">
+                {connectionErrors[activeProfile.id]}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => openConnectionModal(activeProfile)}
+              className="mt-3 rounded-lg bg-[#2563eb] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[#1d4ed8]"
+            >
+              {t(language, "openSiteManager")}
+            </button>
+          </div>
+        ) : !activeProfile || !isSiteConnected ? (
+          <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+            <NavicatDbCylinderIcon opened={false} />
+            <p className="mt-2 text-[11px] text-[#64748b]">
+              {t(language, "notConnectedToSite")}
+            </p>
+            <button
+              type="button"
+              onClick={() => openConnectionModal(null)}
+              className="mt-2.5 rounded-lg bg-[#2563eb] px-3 py-1.5 text-[11px] font-medium text-white hover:bg-[#1d4ed8]"
+            >
+              {t(language, "openSiteManager")}
+            </button>
+          </div>
+        ) : (
+          filteredDbs.map((db) => {
+            const dbKey = makeDbKey(activeProfile.id, db.name);
+            const dbNodeKey = `db:${dbKey}`;
+            const isDbOpened = !!openedDatabases[dbKey];
+            const isDbExpanded = isDbOpened && (!!expandedNodes[dbNodeKey] || Boolean(filterLower));
+            const dbLoading = !!loadingNodes[dbNodeKey] || !!loadingNodes[`scope:${makeScopeKey(activeProfile.id, db.name, null)}`];
+            const schemas = schemasByDb[dbKey] ?? [];
+            const isDbSelected =
+              focusedNodeKey === dbNodeKey && !selectedScope?.objectName;
 
             return (
-              <div key={profile.id} className="mb-0.5">
+              <div key={dbNodeKey} className="mb-0.5">
                 <div
-                  onClick={() => {
-                    if (isConnected) {
-                      toggleNodeExpanded(connKey);
-                    } else {
-                      void selectScope({
-                        profileId: profile.id,
-                        category: "tables",
-                      });
-                    }
+                  onClick={() => handleSingleClickDatabase(activeProfile, db.name)}
+                  onDoubleClick={() =>
+                    void handleDoubleClickDatabase(activeProfile, db.name)
+                  }
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSingleClickDatabase(activeProfile, db.name);
+                    setMenuState({
+                      x: e.clientX,
+                      y: e.clientY,
+                      items: [
+                        isDbOpened
+                          ? {
+                              id: "close-db",
+                              label: "關閉資料庫 (Close Database)",
+                              icon: <PowerOff className="h-3.5 w-3.5 text-[#dc2626]" />,
+                              onClick: () => closeDatabase(activeProfile.id, db.name),
+                            }
+                          : {
+                              id: "open-db",
+                              label: "開啟資料庫 (Open Database)",
+                              icon: <FolderOpen className="h-3.5 w-3.5 text-[#10b981]" />,
+                              onClick: () =>
+                                void openDatabase(activeProfile.id, db.name),
+                            },
+                        { id: "div-db1", divider: true },
+                        {
+                          id: "db-query",
+                          label: "新增查詢 (New Query)",
+                          icon: <Terminal className="h-3.5 w-3.5 text-[#10b981]" />,
+                          disabled: !isDbOpened,
+                          onClick: () =>
+                            openQueryTab(activeProfile.id, db.name, null),
+                        },
+                        {
+                          id: "db-refresh",
+                          label: "重新整理 (Refresh)",
+                          icon: <RefreshCw className="h-3.5 w-3.5" />,
+                          disabled: !isDbOpened,
+                          onClick: () => {
+                            if (activeProfile.dbKind === "postgres") {
+                              void loadSchemas(activeProfile.id, db.name);
+                            } else {
+                              void loadScopeObjects(activeProfile.id, db.name, null);
+                            }
+                          },
+                        },
+                      ],
+                    });
                   }}
-                  onDoubleClick={() => void handleToggleConnection(profile)}
-                  onContextMenu={(e) => openConnectionMenu(e, profile)}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-[11px] ${
-                    selectedScope?.profileId === profile.id && !selectedScope?.database
-                      ? "bg-[#dbeafe] text-[#1e3a8a]"
+                  className={`flex cursor-pointer items-center gap-2 px-1.5 py-1.5 text-[12px] ${
+                    isMac ? "rounded-lg" : "rounded"
+                  } ${
+                    isDbSelected
+                      ? isDark
+                        ? "bg-[#2563eb]/35 text-white font-medium"
+                        : isMac
+                        ? "bg-[#007aff]/14 text-[#0055d4] font-medium"
+                        : "bg-[#dbeafe] text-[#1e3a8a] font-medium"
+                      : isDark
+                      ? "text-[#f4f4f5] hover:bg-white/8"
+                      : isMac
+                      ? "hover:bg-black/5"
                       : "hover:bg-[#eef2f7]"
                   }`}
                 >
-                  {isConnecting ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-[#2563eb] flex-shrink-0" />
-                  ) : isExpanded ? (
-                    <ChevronDown className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDoubleClickDatabase(activeProfile, db.name);
+                    }}
+                    className="p-0.5 text-[#64748b] hover:text-[#111827]"
+                  >
+                    {dbLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[#2563eb]" />
+                    ) : isDbExpanded ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                  </button>
 
-                  <span className="relative flex-shrink-0">
-                    <Database
-                      className="h-3.5 w-3.5"
-                      style={{ color: profile.color || badge.color }}
-                    />
-                    <span
-                      className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white ${
-                        status === "connected"
-                          ? "bg-[#16a34a]"
-                          : status === "demo"
-                          ? "bg-[#7c3aed]"
-                          : status === "error"
-                          ? "bg-[#dc2626]"
-                          : "bg-[#9ca3af]"
-                      }`}
-                    />
-                  </span>
+                  <NavicatDbCylinderIcon opened={isDbOpened} />
 
                   <span
                     className={`truncate ${
-                      isConnected ? "font-semibold text-[#111827]" : "text-[#4b5563]"
+                      isDbOpened ? "font-semibold" : "opacity-80"
                     }`}
                   >
-                    {profile.name}
-                  </span>
-
-                  <span className="ml-auto flex items-center gap-1 flex-shrink-0">
-                    {status === "demo" && (
-                      <span className="rounded bg-[#ede9fe] px-1 py-0 text-[9px] font-semibold text-[#6d28d9]">
-                        DEMO
-                      </span>
-                    )}
-                    <span
-                      className="rounded px-1 text-[9px] font-semibold text-white"
-                      style={{ backgroundColor: badge.color }}
-                    >
-                      {badge.label}
-                    </span>
+                    {db.name}
                   </span>
                 </div>
 
-                {/* Databases */}
-                {isExpanded &&
-                  isConnected &&
-                  dbs.map((db) => {
-                    const dbKey = makeDbKey(profile.id, db.name);
-                    const dbNodeKey = `db:${dbKey}`;
-                    const dbExpanded = !!expandedNodes[dbNodeKey];
-                    const dbLoading = !!loadingNodes[dbNodeKey];
-                    const schemas = schemasByDb[dbKey] ?? [];
-                    const isDbSelected =
-                      selectedScope?.profileId === profile.id &&
-                      selectedScope?.database === db.name &&
-                      !selectedScope?.schema;
+                {/* Expanded Database Children (Navicat Tree) */}
+                {isDbExpanded &&
+                  (activeProfile.dbKind === "postgres"
+                    ? schemas.map((sc) => {
+                        const sKey = makeScopeKey(activeProfile.id, db.name, sc.name);
+                        const scNodeKey = `schema:${sKey}`;
+                        const scExpanded = !!expandedNodes[scNodeKey] || Boolean(filterLower);
+                        const scSelected =
+                          focusedNodeKey === scNodeKey && !selectedScope?.objectName;
 
-                    return (
-                      <div key={dbNodeKey}>
-                        <div
-                          onClick={() => void handleToggleDatabase(profile, db.name)}
-                          onContextMenu={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setMenuState({
-                              x: e.clientX,
-                              y: e.clientY,
-                              items: [
-                                {
-                                  id: "db-query",
-                                  label: `在 ${db.name} 新增查詢`,
-                                  icon: <Terminal className="h-3.5 w-3.5 text-[#059669]" />,
-                                  onClick: () => openQueryTab(profile.id, db.name, null),
-                                },
-                                {
-                                  id: "db-refresh",
-                                  label: "重新整理資料庫物件",
-                                  icon: <RefreshCw className="h-3.5 w-3.5" />,
-                                  onClick: () => {
-                                    if (profile.dbKind === "postgres") {
-                                      void loadSchemas(profile.id, db.name);
-                                    } else {
-                                      void loadScopeObjects(profile.id, db.name, null);
-                                    }
-                                  },
-                                },
-                              ],
-                            });
-                          }}
-                          className={`flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-[11px] ${
-                            isDbSelected
-                              ? "bg-[#dbeafe] text-[#1e3a8a] font-medium"
-                              : "hover:bg-[#eef2f7]"
-                          }`}
-                          style={{ paddingLeft: 18 }}
-                        >
-                          {dbLoading ? (
-                            <Loader2 className="h-3 w-3 animate-spin text-[#2563eb] flex-shrink-0" />
-                          ) : dbExpanded ? (
-                            <ChevronDown className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                          )}
-                          {dbExpanded ? (
-                            <FolderOpen className="h-3.5 w-3.5 text-[#eab308] flex-shrink-0" />
-                          ) : (
-                            <Folder className="h-3.5 w-3.5 text-[#eab308] flex-shrink-0" />
-                          )}
-                          <span className="truncate">{db.name}</span>
-                        </div>
+                        return (
+                          <div key={scNodeKey}>
+                            <div
+                              onClick={() =>
+                                void handleToggleSchema(activeProfile, db.name, sc.name)
+                              }
+                              className={`flex cursor-pointer items-center gap-1.5 px-1.5 py-1 text-[11px] ${
+                                isMac ? "rounded-lg" : "rounded"
+                              } ${
+                                scSelected
+                                  ? isDark
+                                    ? "bg-[#2563eb]/35 text-white font-medium"
+                                    : "bg-[#dbeafe] text-[#1e3a8a] font-medium"
+                                  : isDark
+                                  ? "text-[#d4d4d8] hover:bg-white/8"
+                                  : "hover:bg-[#eef2f7]"
+                              }`}
+                              style={{ paddingLeft: 24 }}
+                            >
+                              {scExpanded ? (
+                                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#64748b]" />
+                              ) : (
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#64748b]" />
+                              )}
+                              <Layers className="h-3.5 w-3.5 shrink-0 text-[#6366f1]" />
+                              <span className="truncate">{sc.name}</span>
+                            </div>
 
-                        {dbExpanded &&
-                          (profile.dbKind === "postgres"
-                            ? schemas.map((sc) => {
-                                const sKey = makeScopeKey(profile.id, db.name, sc.name);
-                                const scNodeKey = `schema:${sKey}`;
-                                const scExpanded = !!expandedNodes[scNodeKey];
-                                const scSelected =
-                                  selectedScope?.profileId === profile.id &&
-                                  selectedScope?.database === db.name &&
-                                  selectedScope?.schema === sc.name &&
-                                  !selectedScope?.objectName;
-
-                                return (
-                                  <div key={scNodeKey}>
-                                    <div
-                                      onClick={() =>
-                                        void handleToggleSchema(profile, db.name, sc.name)
-                                      }
-                                      onContextMenu={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setMenuState({
-                                          x: e.clientX,
-                                          y: e.clientY,
-                                          items: [
-                                            {
-                                              id: "sc-query",
-                                              label: `在 ${sc.name} 新增查詢`,
-                                              icon: (
-                                                <Terminal className="h-3.5 w-3.5 text-[#059669]" />
-                                              ),
-                                              onClick: () =>
-                                                openQueryTab(profile.id, db.name, sc.name),
-                                            },
-                                            {
-                                              id: "sc-refresh",
-                                              label: "重新整理 Schema",
-                                              icon: <RefreshCw className="h-3.5 w-3.5" />,
-                                              onClick: () =>
-                                                void loadScopeObjects(
-                                                  profile.id,
-                                                  db.name,
-                                                  sc.name
-                                                ),
-                                            },
-                                          ],
-                                        });
-                                      }}
-                                      className={`flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-[11px] ${
-                                        scSelected
-                                          ? "bg-[#dbeafe] text-[#1e3a8a] font-medium"
-                                          : "hover:bg-[#eef2f7]"
-                                      }`}
-                                      style={{ paddingLeft: 32 }}
-                                    >
-                                      {scExpanded ? (
-                                        <ChevronDown className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                                      ) : (
-                                        <ChevronRight className="h-3 w-3 text-[#64748b] flex-shrink-0" />
-                                      )}
-                                      <Layers className="h-3.5 w-3.5 text-[#6366f1] flex-shrink-0" />
-                                      <span className="truncate">{sc.name}</span>
-                                    </div>
-
-                                    {scExpanded &&
-                                      renderCategoryChildren(profile, db.name, sc.name)}
-                                  </div>
-                                );
-                              })
-                            : renderCategoryChildren(profile, db.name, null))}
-                      </div>
-                    );
-                  })}
+                            {scExpanded &&
+                              renderCategoryChildren(
+                                activeProfile,
+                                db.name,
+                                sc.name,
+                                40
+                              )}
+                          </div>
+                        );
+                      })
+                    : renderCategoryChildren(activeProfile, db.name, null, 24))}
               </div>
             );
-          })}
+          })
+        )}
       </div>
 
-      {/* Bottom plFilterControl (30px per navicat-ui-spec.md) */}
-      <div className="flex h-[30px] items-center gap-1.5 border-t border-[#d4d8e0] bg-[#f8f9fb] px-2">
-        <div className="flex h-[21px] flex-1 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-1.5">
+      {/* Bottom Search Filter */}
+      <div
+        className={`flex items-center gap-1.5 border-t px-2 ${
+          isMac
+            ? isDark
+              ? "h-[36px] border-white/10 bg-[#242426]"
+              : "h-[36px] border-black/10 bg-[#ececed]"
+            : isDark
+            ? "h-[30px] border-[#333336] bg-[#202022]"
+            : "h-[30px] border-[#d4d8e0] bg-[#f8f9fb]"
+        }`}
+      >
+        <div
+          className={`flex flex-1 items-center gap-1.5 border bg-white px-2 ${
+            isMac
+              ? "h-[24px] rounded-full border-black/10 shadow-2xs"
+              : "h-[21px] rounded border-[#cbd5e1]"
+          }`}
+        >
           <Search className="h-3.5 w-3.5 text-[#9ca3af] flex-shrink-0" />
           <input
             type="text"
             value={treeFilter}
             onChange={(e) => setTreeFilter(e.target.value)}
-            placeholder="搜尋連線或物件..."
+            placeholder={t(language, "filterDbOrTable")}
             className="w-full bg-transparent text-[11px] outline-none"
           />
+          {treeFilter && (
+            <button
+              type="button"
+              onClick={() => setTreeFilter("")}
+              className="opacity-65 hover:opacity-100"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
 

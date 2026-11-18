@@ -135,8 +135,8 @@ function tabToDraft(tab: TableDesignTab, kind: DbKind): TableDesignDraft {
 }
 
 export function TableDesigner({ tab }: TableDesignerProps) {
-  const { profiles, applyTableDesignSql } = useWorkbenchStore();
-  const profile = profiles.find((p) => p.id === tab.profileId);
+  const { applyTableDesignSql, getProfileById } = useWorkbenchStore();
+  const profile = getProfileById(tab.profileId);
   const kind: DbKind = profile?.dbKind ?? "mysql";
 
   const [subTab, setSubTab] = useState<DesignerSubTab>("fields");

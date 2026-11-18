@@ -7,7 +7,7 @@ export type SslMode =
   | "verifyCa"
   | "verifyFull";
 
-export type SshAuthMethod = "password" | "privateKey";
+export type SshAuthMethod = "password" | "privateKey" | "passwordAndPrivateKey";
 
 export interface SslConfig {
   useSsl: boolean;

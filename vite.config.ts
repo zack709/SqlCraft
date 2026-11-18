@@ -8,15 +8,6 @@ export default defineConfig({
   clearScreen: false,
   build: {
     chunkSizeWarningLimit: 5000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          "monaco-editor": ["monaco-editor"],
-          "react-vendor": ["react", "react-dom", "zustand"],
-          "ui-vendor": ["lucide-react", "@tanstack/react-virtual", "@tauri-apps/api"],
-        },
-      },
-    },
   },
   server: {
     port: 1420,

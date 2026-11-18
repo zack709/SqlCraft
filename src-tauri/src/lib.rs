@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod drivers;
+pub mod menu;
 pub mod models;
 pub mod storage;
 pub mod tunnel;
@@ -20,7 +21,13 @@ pub fn run() {
                 store,
                 connections: ConnectionManager::new(),
             });
+            if let Ok(app_menu) = menu::build_app_menu(app.handle()) {
+                let _ = app.set_menu(app_menu);
+            }
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            menu::handle_menu_event(app, event);
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_profiles,
@@ -28,6 +35,7 @@ pub fn run() {
             commands::delete_profile,
             commands::test_connection,
             commands::connect_profile,
+            commands::connect_adhoc_profile,
             commands::disconnect_profile,
             commands::list_databases,
             commands::list_schemas,

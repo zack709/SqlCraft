@@ -53,6 +53,14 @@ pub async fn connect_profile(
 }
 
 #[tauri::command]
+pub async fn connect_adhoc_profile(
+    state: State<'_, AppState>,
+    profile: ConnectionProfile,
+) -> Result<ConnectionTestResult, String> {
+    state.connections.connect_profile(&profile).await
+}
+
+#[tauri::command]
 pub async fn disconnect_profile(
     state: State<'_, AppState>,
     profile_id: String,

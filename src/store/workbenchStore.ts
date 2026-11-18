@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { type AppLanguage } from "../lib/i18n";
 import {
   getDemoDatabases,
   getDemoRoutines,
@@ -19,6 +20,7 @@ import {
 } from "../lib/sql-builder";
 import { buildExplainSql } from "../lib/sql-formatter";
 import { tauriApi } from "../lib/tauri-api";
+import { exportSitesToYaml, parseSitesFromYaml } from "../lib/yaml-sites";
 import type {
   BatchQueryResponse,
   CellValue,
@@ -37,6 +39,8 @@ import type {
 } from "../types/database";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "demo" | "error";
+
+export type ThemeMode = "light" | "dark";
 
 export type ObjectCategory = "tables" | "views" | "routines" | "events" | "sequences" | "queries";
 
@@ -121,8 +125,24 @@ export function makeDbKey(profileId: string, database: string): string {
   return `${profileId}::${database}`;
 }
 
+export interface SiteSessionTab {
+  id: string;
+  profileId: string;
+  title: string;
+  selectedScope: SelectedScope | null;
+  tabs: WorkspaceTab[];
+  activeTabId: string;
+}
+
 interface WorkbenchState {
   profiles: ConnectionProfile[];
+  transientProfiles: Record<string, ConnectionProfile>;
+  folders: string[];
+  showSiteManagerOnStartup: boolean;
+  sessionTabs: SiteSessionTab[];
+  activeSessionTabId: string | null;
+  openedDatabases: Record<string, boolean>;
+
   connectionStates: Record<string, ConnectionStatus>;
   connectionErrors: Record<string, string>;
   serverVersions: Record<string, string>;
@@ -158,10 +178,32 @@ interface WorkbenchState {
   connectionModalOpen: boolean;
   editingProfile: ConnectionProfile | null;
 
+  theme: ThemeMode;
+  language: AppLanguage;
+  editorFontSize: number;
+  settingsModalOpen: boolean;
+
   statusMessage: string;
   lastLatencyMs: number | null;
 
   // Actions
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
+  setLanguage: (language: AppLanguage) => void;
+  setEditorFontSize: (size: number) => void;
+  setSettingsModalOpen: (open: boolean) => void;
+  setShowSiteManagerOnStartup: (show: boolean) => void;
+  createFolder: (folderName: string) => void;
+  deleteFolder: (folderName: string) => Promise<void>;
+  moveProfileToFolder: (profileId: string, folderName: string | null) => Promise<void>;
+  importSitesFromYaml: (yamlText: string) => Promise<number>;
+  exportSitesToYamlText: () => string;
+
+  setActiveSessionTab: (sessionId: string) => void;
+  closeSessionTab: (sessionId: string) => Promise<void>;
+  openDatabase: (profileId: string, dbName: string) => Promise<void>;
+  closeDatabase: (profileId: string, dbName: string) => void;
+
   appendLog: (entry: Omit<ActivityLogEntry, "id" | "timestamp">) => void;
   loadProfiles: () => Promise<void>;
   openConnectionModal: (profile?: ConnectionProfile | null) => void;
@@ -170,7 +212,13 @@ interface WorkbenchState {
   deleteProfile: (profileId: string) => Promise<void>;
   duplicateProfile: (profile: ConnectionProfile) => Promise<void>;
 
-  connectProfile: (profileId: string, useDemo?: boolean) => Promise<boolean>;
+  connectProfile: (
+    profileId: string,
+    useDemo?: boolean,
+    profileOverride?: ConnectionProfile
+  ) => Promise<boolean>;
+  getProfileById: (profileId: string | null | undefined) => ConnectionProfile | null;
+  cancelConnection: (profileId: string) => void;
   disconnectProfile: (profileId: string) => Promise<void>;
 
   loadDatabases: (profileId: string) => Promise<void>;
@@ -290,8 +338,83 @@ interface WorkbenchState {
 
 let queryCounter = 1;
 
+function readInitialTheme(): ThemeMode {
+  try {
+    const saved = localStorage.getItem("sqlcraft.theme");
+    if (saved === "dark" || saved === "light") return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return "light";
+}
+
+function readInitialLanguage(): AppLanguage {
+  try {
+    const saved = localStorage.getItem("sqlcraft.language");
+    if (saved === "en" || saved === "zh-TW") return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return "zh-TW";
+}
+
+const connectionAttemptSeq: Record<string, number> = {};
+
+function readInitialFontSize(): number {
+  try {
+    const saved = Number(localStorage.getItem("sqlcraft.editorFontSize"));
+    if (saved >= 11 && saved <= 20) return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return 13;
+}
+
+function readInitialFolders(): string[] {
+  try {
+    const raw = localStorage.getItem("sqlcraft.folders");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return ["Local"];
+}
+
+function writeFolders(folders: string[]): void {
+  try {
+    localStorage.setItem("sqlcraft.folders", JSON.stringify(folders));
+  } catch {
+    // ignore
+  }
+}
+
+function readShowSiteManagerOnStartup(): boolean {
+  try {
+    const raw = localStorage.getItem("sqlcraft.showSiteManagerOnStartup");
+    if (raw === "false") return false;
+    if (raw === "true") return true;
+  } catch {
+    // ignore
+  }
+  return true;
+}
+
+let hasOpenedStartupModal = false;
+
 export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   profiles: [],
+  transientProfiles: {},
+  folders: readInitialFolders(),
+  showSiteManagerOnStartup: readShowSiteManagerOnStartup(),
+  sessionTabs: [],
+  activeSessionTabId: null,
+  openedDatabases: {},
+
   connectionStates: {},
   connectionErrors: {},
   serverVersions: {},
@@ -327,8 +450,246 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   connectionModalOpen: false,
   editingProfile: null,
 
+  theme: readInitialTheme(),
+  language: readInitialLanguage(),
+  editorFontSize: readInitialFontSize(),
+  settingsModalOpen: false,
+
   statusMessage: "就緒 — 請在左側雙擊連線，或右鍵使用範例結構模式探索",
   lastLatencyMs: null,
+
+  setTheme: (theme) => {
+    try {
+      localStorage.setItem("sqlcraft.theme", theme);
+    } catch {
+      // ignore
+    }
+    set({ theme });
+  },
+
+  toggleTheme: () => {
+    const next: ThemeMode = get().theme === "dark" ? "light" : "dark";
+    get().setTheme(next);
+  },
+
+  setLanguage: (language) => {
+    try {
+      localStorage.setItem("sqlcraft.language", language);
+    } catch {
+      // ignore storage errors
+    }
+    set({ language });
+  },
+
+  setEditorFontSize: (size) => {
+    const clamped = Math.max(11, Math.min(20, size));
+    try {
+      localStorage.setItem("sqlcraft.editorFontSize", String(clamped));
+    } catch {
+      // ignore
+    }
+    set({ editorFontSize: clamped });
+  },
+
+  setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
+
+  setShowSiteManagerOnStartup: (show) => {
+    try {
+      localStorage.setItem("sqlcraft.showSiteManagerOnStartup", String(show));
+    } catch {
+      // ignore
+    }
+    set({ showSiteManagerOnStartup: show });
+  },
+
+  createFolder: (folderName) => {
+    const trimmed = folderName.trim().replace(/^\/+|\/+$/g, "");
+    if (!trimmed) return;
+    set((state) => {
+      if (state.folders.includes(trimmed)) return state;
+      const next = [...state.folders, trimmed].sort((a, b) => a.localeCompare(b));
+      writeFolders(next);
+      return { folders: next };
+    });
+  },
+
+  deleteFolder: async (folderName) => {
+    const trimmed = folderName.trim();
+    const affected = get().profiles.filter((p) => (p.groupName ?? "") === trimmed);
+    for (const p of affected) {
+      await tauriApi.saveProfile({ ...p, groupName: null });
+    }
+    set((state) => {
+      const next = state.folders.filter((f) => f !== trimmed);
+      writeFolders(next);
+      return { folders: next };
+    });
+    await get().loadProfiles();
+  },
+
+  moveProfileToFolder: async (profileId, folderName) => {
+    const found = get().getProfileById(profileId);
+    if (!found) return;
+    const normalized = folderName?.trim().replace(/^\/+|\/+$/g, "") || null;
+    if (normalized) {
+      get().createFolder(normalized);
+    }
+    await get().saveProfile({ ...found, groupName: normalized });
+  },
+
+  importSitesFromYaml: async (yamlText) => {
+    const bundle = parseSitesFromYaml(yamlText);
+    for (const f of bundle.folders) {
+      get().createFolder(f);
+    }
+    for (const site of bundle.sites) {
+      await tauriApi.saveProfile(site);
+    }
+    await get().loadProfiles();
+    get().appendLog({
+      level: "info",
+      message: `已從 YAML 匯入 ${bundle.sites.length} 個站台設定`,
+    });
+    return bundle.sites.length;
+  },
+
+  exportSitesToYamlText: () => {
+    return exportSitesToYaml(get().profiles, get().folders);
+  },
+
+  setActiveSessionTab: (sessionId) => {
+    set((state) => {
+      const target = state.sessionTabs.find((s) => s.id === sessionId);
+      if (!target || state.activeSessionTabId === sessionId) return state;
+
+      const updatedSessions = state.sessionTabs.map((s) =>
+        s.id === state.activeSessionTabId
+          ? {
+              ...s,
+              selectedScope: state.selectedScope,
+              tabs: state.tabs,
+              activeTabId: state.activeTabId,
+            }
+          : s
+      );
+
+      return {
+        sessionTabs: updatedSessions,
+        activeSessionTabId: sessionId,
+        selectedScope: target.selectedScope,
+        tabs: target.tabs,
+        activeTabId: target.activeTabId,
+      };
+    });
+  },
+
+  closeSessionTab: async (sessionId) => {
+    const state = get();
+    const closing = state.sessionTabs.find((s) => s.id === sessionId);
+    if (!closing) return;
+
+    const remaining = state.sessionTabs.filter((s) => s.id !== sessionId);
+    const stillUsed = remaining.some((s) => s.profileId === closing.profileId);
+
+    if (!stillUsed) {
+      const status = state.connectionStates[closing.profileId];
+      if (status === "connected") {
+        await tauriApi.disconnectProfile(closing.profileId);
+      }
+      set((s) => ({
+        connectionStates: { ...s.connectionStates, [closing.profileId]: "disconnected" },
+      }));
+    }
+
+    if (remaining.length === 0) {
+      const defaultObjTab: WorkspaceTab = {
+        id: "objects",
+        kind: "objects",
+        title: "物件",
+        closable: false,
+      };
+      set({
+        sessionTabs: [],
+        activeSessionTabId: null,
+        selectedScope: null,
+        tabs: [defaultObjTab],
+        activeTabId: "objects",
+        statusMessage: "已關閉站台分頁 — 請開啟站台管理連線至資料庫",
+      });
+      return;
+    }
+
+    if (state.activeSessionTabId === sessionId) {
+      const nextSession = remaining[remaining.length - 1];
+      set({
+        sessionTabs: remaining,
+        activeSessionTabId: nextSession.id,
+        selectedScope: nextSession.selectedScope,
+        tabs: nextSession.tabs,
+        activeTabId: nextSession.activeTabId,
+      });
+    } else {
+      set({ sessionTabs: remaining });
+    }
+  },
+
+  openDatabase: async (profileId, dbName) => {
+    const profile = get().getProfileById(profileId);
+    if (!profile) return;
+    const dbKey = makeDbKey(profileId, dbName);
+    const nodeKey = `db:${dbKey}`;
+
+    set((s) => ({
+      openedDatabases: { ...s.openedDatabases, [dbKey]: true },
+      expandedNodes: {
+        ...s.expandedNodes,
+        [nodeKey]: true,
+      },
+      statusMessage: `已開啟資料庫：${dbName}`,
+    }));
+
+    if (profile.dbKind === "postgres") {
+      await get().loadSchemas(profileId, dbName);
+      const schemas = get().schemasByDb[dbKey] ?? [];
+      const targetSchema =
+        schemas.find((s) => s.name === "public")?.name ?? schemas[0]?.name ?? "public";
+      const sKey = makeScopeKey(profileId, dbName, targetSchema);
+      set((s) => ({
+        expandedNodes: { ...s.expandedNodes, [`schema:${sKey}`]: true },
+      }));
+      await get().loadScopeObjects(profileId, dbName, targetSchema);
+      await get().selectScope({
+        profileId,
+        database: dbName,
+        schema: targetSchema,
+        category: "tables",
+        objectName: null,
+      });
+    } else {
+      await get().loadScopeObjects(profileId, dbName, null);
+      await get().selectScope({
+        profileId,
+        database: dbName,
+        schema: null,
+        category: "tables",
+        objectName: null,
+      });
+    }
+  },
+
+  closeDatabase: (profileId, dbName) => {
+    const dbKey = makeDbKey(profileId, dbName);
+    const nodeKey = `db:${dbKey}`;
+    set((s) => ({
+      openedDatabases: { ...s.openedDatabases, [dbKey]: false },
+      expandedNodes: { ...s.expandedNodes, [nodeKey]: false },
+      selectedScope:
+        s.selectedScope?.profileId === profileId && s.selectedScope?.database === dbName
+          ? { profileId, database: null, schema: null, category: "tables" }
+          : s.selectedScope,
+      statusMessage: `已關閉資料庫：${dbName}`,
+    }));
+  },
 
   appendLog: (entry) => {
     const now = new Date();
@@ -352,13 +713,29 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     ]);
     set((state) => {
       const nextStates = { ...state.connectionStates };
+      const folderSet = new Set<string>(state.folders);
       for (const p of items) {
         if (!nextStates[p.id]) nextStates[p.id] = "disconnected";
+        const g = p.groupName?.trim();
+        if (g) folderSet.add(g);
       }
+      const mergedFolders = [...folderSet].sort((a, b) => a.localeCompare(b));
+      writeFolders(mergedFolders);
+
+      const shouldAutoOpen =
+        !hasOpenedStartupModal &&
+        state.showSiteManagerOnStartup &&
+        state.sessionTabs.length === 0;
+      if (!hasOpenedStartupModal) {
+        hasOpenedStartupModal = true;
+      }
+
       return {
         profiles: items,
+        folders: mergedFolders,
         savedQueries,
         connectionStates: nextStates,
+        connectionModalOpen: shouldAutoOpen ? true : state.connectionModalOpen,
       };
     });
   },
@@ -383,7 +760,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   deleteProfile: async (profileId) => {
-    const target = get().profiles.find((p) => p.id === profileId);
+    const target = get().getProfileById(profileId);
     await tauriApi.deleteProfile(profileId);
     set((state) => {
       const nextSelected =
@@ -414,9 +791,98 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     await get().saveProfile(copy);
   },
 
-  connectProfile: async (profileId, useDemo = false) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+  getProfileById: (profileId) => {
+    if (!profileId) return null;
+    const state = get();
+    return (
+      state.profiles.find((p) => p.id === profileId) ??
+      state.transientProfiles[profileId] ??
+      null
+    );
+  },
+
+  connectProfile: async (profileId, useDemo = false, profileOverride) => {
+    const stateNow = get();
+    const profile =
+      profileOverride ??
+      stateNow.profiles.find((p) => p.id === profileId) ??
+      stateNow.transientProfiles[profileId];
     if (!profile) return false;
+
+    if (profileOverride) {
+      set((state) => ({
+        transientProfiles: {
+          ...state.transientProfiles,
+          [profileOverride.id]: profileOverride,
+        },
+      }));
+    }
+
+    const activateOrCreateSessionForProfile = () => {
+      set((state) => {
+        const snapshotSessions = state.sessionTabs.map((s) =>
+          s.id === state.activeSessionTabId
+            ? {
+                ...s,
+                selectedScope: state.selectedScope,
+                tabs: state.tabs,
+                activeTabId: state.activeTabId,
+              }
+            : s
+        );
+
+        const existing = snapshotSessions.find((s) => s.profileId === profileId);
+        if (existing) {
+          return {
+            sessionTabs: snapshotSessions,
+            activeSessionTabId: existing.id,
+            selectedScope: existing.selectedScope ?? {
+              profileId,
+              database: null,
+              schema: null,
+              category: "tables",
+            },
+            tabs: existing.tabs,
+            activeTabId: existing.activeTabId,
+            connectionModalOpen: false,
+          };
+        }
+
+        const defaultObjTab: WorkspaceTab = {
+          id: "objects",
+          kind: "objects",
+          title: "物件",
+          closable: false,
+        };
+        const initialScope: SelectedScope = {
+          profileId,
+          database: null,
+          schema: null,
+          category: "tables",
+        };
+        const newSession: SiteSessionTab = {
+          id: `session-${profileId}`,
+          profileId,
+          title: profile.name,
+          selectedScope: initialScope,
+          tabs: [defaultObjTab],
+          activeTabId: "objects",
+        };
+        return {
+          sessionTabs: [...snapshotSessions, newSession],
+          activeSessionTabId: newSession.id,
+          selectedScope: initialScope,
+          tabs: [defaultObjTab],
+          activeTabId: "objects",
+          connectionModalOpen: false,
+        };
+      });
+    };
+
+    const myAttempt = (connectionAttemptSeq[profileId] ?? 0) + 1;
+    connectionAttemptSeq[profileId] = myAttempt;
+
+    activateOrCreateSessionForProfile();
 
     set((state) => ({
       connectionStates: { ...state.connectionStates, [profileId]: "connecting" },
@@ -434,7 +900,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         },
         databasesByProfile: { ...state.databasesByProfile, [profileId]: dbs },
         expandedNodes: { ...state.expandedNodes, [`conn:${profileId}`]: true },
-        statusMessage: `已開啟 ${profile.name} [DEMO 模式]`,
+        statusMessage: `已開啟 ${profile.name} [DEMO 模式] — 請在左側雙擊資料庫開啟`,
         lastLatencyMs: 1,
       }));
       get().appendLog({
@@ -443,34 +909,17 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         message: `已載入離線範例結構 (DEMO 模式，共 ${dbs.length} 個資料庫)`,
         latencyMs: 1,
       });
-      if (dbs.length > 0) {
-        const firstDb = dbs[0].name;
-        if (profile.dbKind === "postgres") {
-          await get().loadSchemas(profileId, firstDb);
-          const schemas = get().schemasByDb[makeDbKey(profileId, firstDb)] ?? [];
-          const firstSchema = schemas[0]?.name ?? "public";
-          await get().loadScopeObjects(profileId, firstDb, firstSchema);
-          await get().selectScope({
-            profileId,
-            database: firstDb,
-            schema: firstSchema,
-            category: "tables",
-          });
-        } else {
-          await get().loadScopeObjects(profileId, firstDb, null);
-          await get().selectScope({
-            profileId,
-            database: firstDb,
-            schema: null,
-            category: "tables",
-          });
-        }
-      }
       return true;
     }
 
     try {
-      const res = await tauriApi.connectProfile(profileId);
+      const res = profileOverride
+        ? await tauriApi.connectAdhocProfile(profileOverride)
+        : await tauriApi.connectProfile(profileId);
+      if (connectionAttemptSeq[profileId] !== myAttempt) {
+        void tauriApi.disconnectProfile(profileId);
+        return false;
+      }
       if (!res.success) {
         set((state) => ({
           connectionStates: { ...state.connectionStates, [profileId]: "error" },
@@ -494,7 +943,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
           [profileId]: res.serverVersion || profile.dbKind,
         },
         expandedNodes: { ...state.expandedNodes, [`conn:${profileId}`]: true },
-        statusMessage: `已連線：${profile.name} (${res.serverVersion ?? ""})`,
+        statusMessage: `已連線：${profile.name} (${res.serverVersion ?? ""}) — 請在左側雙擊資料庫開啟`,
         lastLatencyMs: res.latencyMs,
       }));
 
@@ -506,39 +955,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       });
 
       await get().loadDatabases(profileId);
-      const dbs = get().databasesByProfile[profileId] ?? [];
-      const preferredDb =
-        profile.initialDatabase && dbs.some((d) => d.name === profile.initialDatabase)
-          ? profile.initialDatabase
-          : dbs[0]?.name;
-
-      if (preferredDb) {
-        if (profile.dbKind === "postgres") {
-          await get().loadSchemas(profileId, preferredDb);
-          const schemas = get().schemasByDb[makeDbKey(profileId, preferredDb)] ?? [];
-          const preferredSchema =
-            schemas.find((s) => s.name === "public")?.name ?? schemas[0]?.name;
-          if (preferredSchema) {
-            await get().loadScopeObjects(profileId, preferredDb, preferredSchema);
-            await get().selectScope({
-              profileId,
-              database: preferredDb,
-              schema: preferredSchema,
-              category: "tables",
-            });
-          }
-        } else {
-          await get().loadScopeObjects(profileId, preferredDb, null);
-          await get().selectScope({
-            profileId,
-            database: preferredDb,
-            schema: null,
-            category: "tables",
-          });
-        }
-      }
       return true;
     } catch (err) {
+      if (connectionAttemptSeq[profileId] !== myAttempt) {
+        return false;
+      }
       const msg = String(err);
       set((state) => ({
         connectionStates: { ...state.connectionStates, [profileId]: "error" },
@@ -554,8 +975,20 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     }
   },
 
+  cancelConnection: (profileId) => {
+    connectionAttemptSeq[profileId] = (connectionAttemptSeq[profileId] ?? 0) + 1;
+    void tauriApi.disconnectProfile(profileId);
+    const profile = get().getProfileById(profileId);
+    set((state) => ({
+      connectionStates: { ...state.connectionStates, [profileId]: "disconnected" },
+      connectionErrors: { ...state.connectionErrors, [profileId]: "" },
+      statusMessage: `已取消連線：${profile?.name ?? profileId}`,
+    }));
+    get().openConnectionModal(profile);
+  },
+
   disconnectProfile: async (profileId) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     const status = get().connectionStates[profileId];
     if (status === "connected") {
       await tauriApi.disconnectProfile(profileId);
@@ -573,7 +1006,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   loadDatabases: async (profileId) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
     const key = `conn:${profileId}`;
@@ -585,13 +1018,21 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       set((s) => ({
         databasesByProfile: { ...s.databasesByProfile, [profileId]: dbs },
       }));
+    } catch (err) {
+      const msg = String(err);
+      set({ statusMessage: `讀取資料庫清單失敗：${msg}` });
+      get().appendLog({
+        level: "error",
+        profileName: profile.name,
+        message: `讀取資料庫清單失敗：${msg}`,
+      });
     } finally {
       set((s) => ({ loadingNodes: { ...s.loadingNodes, [key]: false } }));
     }
   },
 
   loadSchemas: async (profileId, database) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile || profile.dbKind !== "postgres") return;
     const isDemo = get().connectionStates[profileId] === "demo";
     const dbKey = makeDbKey(profileId, database);
@@ -610,7 +1051,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   loadScopeObjects: async (profileId, database, schema = null) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
     const key = makeScopeKey(profileId, database, schema);
@@ -677,7 +1118,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   selectObject: async (profileId, database, schema, category, objectName) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
 
@@ -807,7 +1248,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   refreshTableDataTab: async (tabId, opts) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab || tab.kind !== "table-data") return;
-    const profile = get().profiles.find((p) => p.id === tab.profileId);
+    const profile = get().getProfileById(tab.profileId);
     if (!profile) return;
 
     const nextPage = opts?.page ?? tab.page ?? 1;
@@ -968,7 +1409,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   applyGridChangeSet: async (tabId, statements, nextDemoRows) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab || tab.kind !== "table-data") return;
-    const profile = get().profiles.find((p) => p.id === tab.profileId);
+    const profile = get().getProfileById(tab.profileId);
     if (!profile) return;
 
     const isDemo = get().connectionStates[tab.profileId] === "demo";
@@ -1056,7 +1497,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       activeTabId: tabId,
     }));
 
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
 
@@ -1147,7 +1588,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   applyTableDesignSql: async (tabId, sql, targetTableName, isNew, demoTableMeta) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab || tab.kind !== "table-design") return;
-    const profile = get().profiles.find((p) => p.id === tab.profileId);
+    const profile = get().getProfileById(tab.profileId);
     if (!profile) return;
 
     const isDemo = get().connectionStates[tab.profileId] === "demo";
@@ -1320,7 +1761,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     const sqlToRun = (sqlOverride ?? tab.sql).trim();
     if (!sqlToRun) return;
 
-    const profile = get().profiles.find((p) => p.id === tab.profileId);
+    const profile = get().getProfileById(tab.profileId);
     const isDemo = get().connectionStates[tab.profileId] === "demo";
 
     set((state) => ({
@@ -1412,7 +1853,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   explainQueryInTab: async (tabId, sqlOverride) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab || tab.kind !== "query") return;
-    const profile = get().profiles.find((p) => p.id === tab.profileId);
+    const profile = get().getProfileById(tab.profileId);
     const kind = profile?.dbKind ?? "mysql";
     const targetSql = (sqlOverride ?? tab.sql).trim();
     const explainSql = buildExplainSql(targetSql, kind);
@@ -1565,7 +2006,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   dropTable: async (profileId, database, schema, tableName) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
     const key = makeScopeKey(profileId, database, schema);
@@ -1596,7 +2037,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   truncateTable: async (profileId, database, schema, tableName) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return;
     const isDemo = get().connectionStates[profileId] === "demo";
 
@@ -1621,7 +2062,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   renameTable: async (profileId, database, schema, oldName, newName) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile || !newName.trim() || newName === oldName) return;
     const trimmed = newName.trim();
     const isDemo = get().connectionStates[profileId] === "demo";
@@ -1659,7 +2100,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   },
 
   getTableDdl: async (profileId, database, schema, objectType, objectName) => {
-    const profile = get().profiles.find((p) => p.id === profileId);
+    const profile = get().getProfileById(profileId);
     if (!profile) return "";
     if (get().connectionStates[profileId] === "demo") {
       return (

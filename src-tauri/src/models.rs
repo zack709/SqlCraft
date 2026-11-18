@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 
 /// Supported database engines in Phase 2 (extensible for SQLite, Redis, etc.).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "lowercase")]
 pub enum DbKind {
     Mysql,
+    #[serde(alias = "mariaDb")]
     MariaDb,
+    #[serde(alias = "postgresql")]
     Postgres,
 }
 
@@ -78,6 +80,7 @@ pub struct SslConfig {
 pub enum SshAuthMethod {
     Password,
     PrivateKey,
+    PasswordAndPrivateKey,
 }
 
 impl Default for SshAuthMethod {
@@ -324,4 +327,22 @@ pub struct SavedQuery {
     pub sql_text: String,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn db_kind_serializes_lowercase_and_accepts_aliases() {
+        assert_eq!(serde_json::to_string(&DbKind::Mysql).unwrap(), "\"mysql\"");
+        assert_eq!(serde_json::to_string(&DbKind::MariaDb).unwrap(), "\"mariadb\"");
+        assert_eq!(serde_json::to_string(&DbKind::Postgres).unwrap(), "\"postgres\"");
+
+        assert_eq!(serde_json::from_str::<DbKind>("\"mysql\"").unwrap(), DbKind::Mysql);
+        assert_eq!(serde_json::from_str::<DbKind>("\"mariadb\"").unwrap(), DbKind::MariaDb);
+        assert_eq!(serde_json::from_str::<DbKind>("\"mariaDb\"").unwrap(), DbKind::MariaDb);
+        assert_eq!(serde_json::from_str::<DbKind>("\"postgres\"").unwrap(), DbKind::Postgres);
+        assert_eq!(serde_json::from_str::<DbKind>("\"postgresql\"").unwrap(), DbKind::Postgres);
+    }
 }

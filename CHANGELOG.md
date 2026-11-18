@@ -5,6 +5,24 @@ All notable changes to **SqlCraft** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-18
+
+### Added
+- **macOS Universal Build & Native OS Styling**: Added macOS native menu (`src-tauri/src/menu.rs`), OS-adaptive UI styling (`src/utils/platform.ts`), custom `SqlCraft` app icon (`src-tauri/icons/`), `ErrorBoundary`, and `universal-apple-darwin` bundle configuration.
+- **Dark Theme & Preferences (`SettingsModal.tsx`)**: Added Light / Dark theme switching, SQL editor font size selector, default object view mode, and inspector visibility toggle.
+- **Multi-Language Support (`src/lib/i18n.ts`)**: Added Traditional Chinese (`zh-TW`) and English (`en`) UI localization with a language dropdown in Preferences.
+- **Redesigned Site Manager & Session Tabs (`ConnectionModal.tsx`, `SessionTabsBar.tsx`)**: Added folder management, YAML import/export (`src/lib/yaml-sites.ts`), database engine dropdown with `DbEngineIcon`, multi-session tabs, and ad-hoc connections (`connect_adhoc_profile`) that connect without auto-saving.
+- **SSH Tunnel Auth Methods**: Added support for `Password`, `Public Key`, and `Password & Public Key` (`PasswordAndPrivateKey`) in the SSH Tunnel tab and Rust backend.
+
+### Changed
+- **Navicat-Style Tree & Connection UX**: Double-clicking a database opens it without auto-expanding tables; category folders (`Tables`, `Views`, etc.) select on single-click and expand on double-click; single-row highlight on folder selection. Clicking Connect closes Site Manager immediately and displays connecting status with a **Cancel Connection** button in the left explorer.
+- **UI Cleanup**: Removed Demo preview buttons and tag color swatches from Site Manager.
+
+### Fixed
+- **MariaDB Database List (`src-tauri/src/drivers/mysql.rs`)**: Simplified `information_schema.SCHEMATA` query, added `Vec<u8>` decoding, and added `SHOW DATABASES` fallback so MariaDB databases always load properly.
+- **Cloud PostgreSQL / MySQL SSL Default (`postgres.rs`, `mysql.rs`)**: Defaulted SSL mode to `Prefer` / `Preferred` when SSL is unchecked to prevent `no encryption` errors on Azure PostgreSQL.
+- **SSH Host Input Layout**: Separated SSH Host and Port onto individual rows and fixed `w-full` width conflict.
+
 ## [0.1.0] - 2026-11-18
 
 ### Added

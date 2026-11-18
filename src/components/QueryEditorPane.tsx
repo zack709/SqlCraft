@@ -21,6 +21,7 @@ import {
   type WorkspaceTab,
 } from "../store/workbenchStore";
 import type { QueryResultSet } from "../types/database";
+import { isMacOS } from "../utils/platform";
 import { ExportModal } from "./ExportModal";
 import { MonacoSqlEditor, type SchemaCompletionTable } from "./MonacoSqlEditor";
 
@@ -45,6 +46,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
     tablesByScope,
     viewsByScope,
     routinesByScope,
+    language,
     updateQueryTabSql,
     updateQueryTabContext,
     runQueryInTab,
@@ -79,8 +81,10 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
     };
   }, []);
 
-  const profile = profiles.find((p) => p.id === tab.profileId) ?? profiles[0] ?? null;
+  const profile =
+    useWorkbenchStore.getState().getProfileById(tab.profileId) ?? profiles[0] ?? null;
   const dbKind = profile?.dbKind ?? "mysql";
+  const isMac = isMacOS();
   const dbs = profile ? databasesByProfile[profile.id] ?? [] : [];
   const schemas =
     profile && tab.database && dbKind === "postgres"
@@ -172,7 +176,13 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white text-[11px]">
       {/* Query Context & Action Toolbar */}
-      <div className="flex h-[32px] items-center justify-between border-b border-[#dcdfe6] bg-[#f8f9fb] px-2.5 gap-2">
+      <div
+        className={`flex items-center justify-between gap-2 border-b px-2.5 ${
+          isMac
+            ? "h-[36px] border-black/10 bg-[#f5f5f7]"
+            : "h-[32px] border-[#dcdfe6] bg-[#f8f9fb]"
+        }`}
+      >
         <div className="flex items-center gap-1.5 min-w-0">
           <select
             value={tab.profileId}
@@ -183,7 +193,9 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                 schema: null,
               })
             }
-            className="h-6 max-w-[160px] rounded border border-[#cbd5e1] bg-white px-1.5 font-medium"
+            className={`h-6 max-w-[160px] border bg-white px-1.5 font-medium ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
@@ -200,7 +212,9 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                 schema: null,
               })
             }
-            className="h-6 max-w-[140px] rounded border border-[#cbd5e1] bg-white px-1.5 font-mono"
+            className={`h-6 max-w-[140px] border bg-white px-1.5 font-mono ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <option value="">(預設資料庫)</option>
             {dbs.map((d) => (
@@ -218,7 +232,9 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                   schema: e.target.value || null,
                 })
               }
-              className="h-6 max-w-[120px] rounded border border-[#cbd5e1] bg-white px-1.5 font-mono"
+              className={`h-6 max-w-[120px] border bg-white px-1.5 font-mono ${
+                isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+              }`}
             >
               <option value="">public</option>
               {schemas.map((s) => (
@@ -236,35 +252,49 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             disabled={tab.running}
             onClick={() => void runQueryInTab(tab.id)}
             title="執行全部 (Run All)"
-            className="flex h-6 items-center gap-1 rounded bg-[#16a34a] px-2.5 font-medium text-white hover:bg-[#15803d] disabled:opacity-50"
+            className={`flex h-6 items-center gap-1 bg-[#16a34a] px-2.5 font-medium text-white hover:bg-[#15803d] disabled:opacity-50 ${
+              isMac ? "rounded-md" : "rounded"
+            }`}
           >
             {tab.running ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <Play className="h-3 w-3" />
             )}
-            <span>執行</span>
+            <span>{language === "en" ? "Run" : "執行"}</span>
           </button>
 
           <button
             type="button"
             disabled={tab.running}
             onClick={() => handleRunSelectionOrCurrent(selectedText, cursorOffset)}
-            title="執行選取或游標所在語句 (Ctrl+Enter)"
-            className="flex h-6 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#eff6ff] disabled:opacity-50"
+            title={`${language === "en" ? "Run selection or current statement" : "執行選取或游標所在語句"} (${isMac ? "⌘Enter" : "Ctrl+Enter"})`}
+            className={`flex h-6 items-center gap-1 border bg-white px-2 hover:bg-[#eff6ff] disabled:opacity-50 ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <PlayCircle className="h-3 w-3 text-[#2563eb]" />
-            <span>{selectedText.trim() ? "執行選取" : "執行當前"}</span>
+            <span>
+              {selectedText.trim()
+                ? language === "en"
+                  ? "Run Selected"
+                  : "執行選取"
+                : language === "en"
+                ? "Run Current"
+                : "執行當前"}
+            </span>
           </button>
 
           {tab.running && (
             <button
               type="button"
               onClick={() => void cancelQueryInTab(tab.id)}
-              className="flex h-6 items-center gap-1 rounded bg-[#dc2626] px-2 text-white hover:bg-[#b91c1c]"
+              className={`flex h-6 items-center gap-1 bg-[#dc2626] px-2 text-white hover:bg-[#b91c1c] ${
+                isMac ? "rounded-md" : "rounded"
+              }`}
             >
               <Square className="h-3 w-3" />
-              <span>停止</span>
+              <span>{language === "en" ? "Stop" : "停止"}</span>
             </button>
           )}
 
@@ -272,20 +302,24 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             type="button"
             disabled={tab.running}
             onClick={handleExplain}
-            className="flex h-6 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#faf5ff]"
+            className={`flex h-6 items-center gap-1 border bg-white px-2 hover:bg-[#faf5ff] ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <Sparkles className="h-3 w-3 text-[#7c3aed]" />
-            <span>解釋</span>
+            <span>{language === "en" ? "Explain" : "解釋"}</span>
           </button>
 
           <button
             type="button"
             onClick={handleFormat}
-            title="美化 SQL (Ctrl+Shift+F)"
-            className="flex h-6 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#f1f5f9]"
+            title={`${language === "en" ? "Format SQL" : "美化 SQL"} (${isMac ? "⌘⇧F" : "Ctrl+Shift+F"})`}
+            className={`flex h-6 items-center gap-1 border bg-white px-2 hover:bg-[#f1f5f9] ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <Wand2 className="h-3 w-3 text-[#475569]" />
-            <span>美化</span>
+            <span>{language === "en" ? "Format" : "美化"}</span>
           </button>
         </div>
 
@@ -296,20 +330,24 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
               setSaveTitle(tab.title);
               setSaveModalOpen(true);
             }}
-            className="flex h-6 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#eff6ff]"
+            className={`flex h-6 items-center gap-1 border bg-white px-2 hover:bg-[#eff6ff] ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <Save className="h-3 w-3 text-[#2563eb]" />
-            <span>儲存</span>
+            <span>{language === "en" ? "Save" : "儲存"}</span>
           </button>
 
           <button
             type="button"
             disabled={!activeExportResult || activeExportResult.rows.length === 0}
             onClick={() => setExportOpen(true)}
-            className="flex h-6 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#ecfdf5] disabled:opacity-40"
+            className={`flex h-6 items-center gap-1 border bg-white px-2 hover:bg-[#ecfdf5] disabled:opacity-40 ${
+              isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
+            }`}
           >
             <Download className="h-3 w-3 text-[#059669]" />
-            <span>匯出</span>
+            <span>{language === "en" ? "Export" : "匯出"}</span>
           </button>
         </div>
       </div>
@@ -395,7 +433,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             <div className="p-3 space-y-2">
               {!tab.response ? (
                 <div className="text-[#94a3b8]">
-                  按「執行」或 `Ctrl+Enter` 執行 SQL 查詢。
+                  按「執行」或 `{isMac ? "⌘Enter" : "Ctrl+Enter"}` 執行 SQL 查詢。
                 </div>
               ) : (
                 <>

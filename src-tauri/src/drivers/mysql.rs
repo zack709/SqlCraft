@@ -31,7 +31,7 @@ impl MySqlDriver {
         }
 
         let ssl_mode = if !profile.ssl.use_ssl {
-            MySqlSslMode::Disabled
+            MySqlSslMode::Preferred
         } else {
             match profile.ssl.mode {
                 SslMode::Disable => MySqlSslMode::Disabled,
@@ -161,31 +161,75 @@ impl DatabaseDriver for MySqlDriver {
     }
 
     async fn list_databases(&self) -> Result<Vec<DatabaseInfo>, String> {
-        let rows = sqlx::query(
+        let schemata_res = sqlx::query(
             r#"
             SELECT
-                s.SCHEMA_NAME AS name,
-                s.DEFAULT_CHARACTER_SET_NAME AS charset,
-                s.DEFAULT_COLLATION_NAME AS collation,
-                CAST(COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0) AS SIGNED) AS size_bytes
-            FROM information_schema.SCHEMATA s
-            LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME
-            GROUP BY s.SCHEMA_NAME, s.DEFAULT_CHARACTER_SET_NAME, s.DEFAULT_COLLATION_NAME
-            ORDER BY s.SCHEMA_NAME
+                SCHEMA_NAME AS name,
+                DEFAULT_CHARACTER_SET_NAME AS charset,
+                DEFAULT_COLLATION_NAME AS collation
+            FROM information_schema.SCHEMATA
+            ORDER BY SCHEMA_NAME
             "#,
         )
         .fetch_all(&self.pool)
-        .await
-        .map_err(|e| format!("Failed to list databases: {e}"))?;
+        .await;
+
+        if let Ok(rows) = schemata_res {
+            let list: Vec<DatabaseInfo> = rows
+                .into_iter()
+                .filter_map(|r| {
+                    let name: String = r
+                        .try_get::<String, _>("name")
+                        .ok()
+                        .or_else(|| {
+                            r.try_get::<Vec<u8>, _>("name")
+                                .ok()
+                                .map(|b| String::from_utf8_lossy(&b).into_owned())
+                        })?;
+                    if name.is_empty() {
+                        return None;
+                    }
+                    Some(DatabaseInfo {
+                        name,
+                        charset: r.try_get("charset").ok(),
+                        collation: r.try_get("collation").ok(),
+                        owner: None,
+                        size_bytes: None,
+                    })
+                })
+                .collect();
+            if !list.is_empty() {
+                return Ok(list);
+            }
+        }
+
+        // Fallback to SHOW DATABASES for MariaDB/MySQL servers with restricted information_schema
+        let rows = sqlx::query("SHOW DATABASES")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to list databases: {e}"))?;
 
         Ok(rows
             .into_iter()
-            .map(|r| DatabaseInfo {
-                name: r.try_get("name").unwrap_or_default(),
-                charset: r.try_get("charset").ok(),
-                collation: r.try_get("collation").ok(),
-                owner: None,
-                size_bytes: r.try_get("size_bytes").ok(),
+            .filter_map(|r| {
+                let name = r
+                    .try_get::<String, _>(0)
+                    .ok()
+                    .or_else(|| {
+                        r.try_get::<Vec<u8>, _>(0)
+                            .ok()
+                            .map(|b| String::from_utf8_lossy(&b).into_owned())
+                    })?;
+                if name.is_empty() {
+                    return None;
+                }
+                Some(DatabaseInfo {
+                    name,
+                    charset: None,
+                    collation: None,
+                    owner: None,
+                    size_bytes: None,
+                })
             })
             .collect())
     }
