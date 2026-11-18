@@ -427,13 +427,13 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                   items: [
                     {
                       id: "new-table",
-                      label: "新增資料表...",
+                      label: language === "en" ? "New Table..." : "新增資料表...",
                       icon: <Plus className="h-3.5 w-3.5 text-[#2563eb]" />,
                       onClick: () => openNewTableDesignTab(profile.id, database, schema),
                     },
                     {
                       id: "refresh-tables",
-                      label: "重新整理",
+                      label: t(language, "refresh"),
                       icon: <RefreshCw className="h-3.5 w-3.5" />,
                       onClick: () => void loadScopeObjects(profile.id, database, schema),
                     },
@@ -446,7 +446,7 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                   items: [
                     {
                       id: "new-q",
-                      label: "新增查詢...",
+                      label: language === "en" ? "New Query..." : "新增查詢...",
                       icon: <Terminal className="h-3.5 w-3.5 text-[#10b981]" />,
                       onClick: () => openQueryTab(profile.id, database, schema),
                     },
@@ -528,13 +528,13 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                           items: [
                             {
                               id: "open-sq",
-                              label: "開啟查詢",
+                              label: language === "en" ? "Open Query" : "開啟查詢",
                               icon: <Terminal className="h-3.5 w-3.5 text-[#059669]" />,
                               onClick: () => openSavedQueryTab(found),
                             },
                             {
                               id: "del-sq",
-                              label: "刪除查詢",
+                              label: language === "en" ? "Delete Query" : "刪除查詢",
                               icon: <Trash2 className="h-3.5 w-3.5" />,
                               danger: true,
                               onClick: () => void deleteSavedQuery(found.id),
@@ -801,13 +801,13 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                         isDbOpened
                           ? {
                               id: "close-db",
-                              label: "關閉資料庫 (Close Database)",
+                              label: language === "en" ? "Close Database" : "關閉資料庫 (Close Database)",
                               icon: <PowerOff className="h-3.5 w-3.5 text-[#dc2626]" />,
                               onClick: () => closeDatabase(activeProfile.id, db.name),
                             }
                           : {
                               id: "open-db",
-                              label: "開啟資料庫 (Open Database)",
+                              label: language === "en" ? "Open Database" : "開啟資料庫 (Open Database)",
                               icon: <FolderOpen className="h-3.5 w-3.5 text-[#10b981]" />,
                               onClick: () =>
                                 void openDatabase(activeProfile.id, db.name),
@@ -815,7 +815,7 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                         { id: "div-db1", divider: true },
                         {
                           id: "db-query",
-                          label: "新增查詢 (New Query)",
+                          label: language === "en" ? "New Query" : "新增查詢 (New Query)",
                           icon: <Terminal className="h-3.5 w-3.5 text-[#10b981]" />,
                           disabled: !isDbOpened,
                           onClick: () =>
@@ -823,7 +823,7 @@ export function ConnectionTree({ width }: ConnectionTreeProps) {
                         },
                         {
                           id: "db-refresh",
-                          label: "重新整理 (Refresh)",
+                          label: language === "en" ? "Refresh" : "重新整理 (Refresh)",
                           icon: <RefreshCw className="h-3.5 w-3.5" />,
                           disabled: !isDbOpened,
                           onClick: () => {

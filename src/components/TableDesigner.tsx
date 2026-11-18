@@ -135,7 +135,8 @@ function tabToDraft(tab: TableDesignTab, kind: DbKind): TableDesignDraft {
 }
 
 export function TableDesigner({ tab }: TableDesignerProps) {
-  const { applyTableDesignSql, getProfileById } = useWorkbenchStore();
+  const { applyTableDesignSql, getProfileById, language } = useWorkbenchStore();
+  const isEn = language === "en";
   const profile = getProfileById(tab.profileId);
   const kind: DbKind = profile?.dbKind ?? "mysql";
 
@@ -277,10 +278,10 @@ export function TableDesigner({ tab }: TableDesignerProps) {
 
   const handleSave = async () => {
     if (!draft.tableName.trim()) {
-      setErrorMsg("請輸入資料表名稱");
+      setErrorMsg(isEn ? "Please enter a table name" : "請輸入資料表名稱");
       return;
     }
-    if (generatedSql.startsWith("-- 尚無結構變更")) return;
+    if (generatedSql.startsWith("-- 尚無結構變更") || generatedSql.startsWith("-- No schema changes")) return;
 
     setSaving(true);
     setErrorMsg(null);
@@ -339,7 +340,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
     return (
       <div className="flex flex-1 items-center justify-center gap-2 text-[#64748b] text-xs">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span>正在讀取資料表結構...</span>
+        <span>{isEn ? "Loading table structure..." : "正在讀取資料表結構..."}</span>
       </div>
     );
   }
@@ -356,11 +357,19 @@ export function TableDesigner({ tab }: TableDesignerProps) {
             className="flex items-center gap-1 rounded bg-[#2563eb] px-2.5 py-1 font-medium text-white hover:bg-[#1d4ed8] disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
-            <span>{saving ? "套用中..." : "儲存結構"}</span>
+            <span>
+              {saving
+                ? isEn
+                  ? "Applying..."
+                  : "套用中..."
+                : isEn
+                ? "Save Structure"
+                : "儲存結構"}
+            </span>
           </button>
 
           <div className="flex items-center gap-1 ml-2">
-            <span className="text-[#64748b]">資料表名稱：</span>
+            <span className="text-[#64748b]">{isEn ? "Table Name:" : "資料表名稱："}</span>
             <input
               type="text"
               value={draft.tableName}
@@ -378,7 +387,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
                 className="flex items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 py-0.5 hover:bg-[#eff6ff]"
               >
                 <Plus className="h-3 w-3 text-[#16a34a]" />
-                <span>新增</span>
+                <span>{isEn ? "Add" : "新增"}</span>
               </button>
               <button
                 type="button"
@@ -387,7 +396,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
                 className="flex items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 py-0.5 hover:bg-[#fef2f2] disabled:opacity-40"
               >
                 <Trash2 className="h-3 w-3 text-[#dc2626]" />
-                <span>刪除</span>
+                <span>{isEn ? "Delete" : "刪除"}</span>
               </button>
             </>
           )}
@@ -398,7 +407,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
                 type="button"
                 disabled={!selectedRowId}
                 onClick={() => moveField(-1)}
-                title="上移欄位"
+                title={isEn ? "Move Field Up" : "上移欄位"}
                 className="rounded border border-[#cbd5e1] bg-white p-1 hover:bg-[#f1f5f9] disabled:opacity-40"
               >
                 <ArrowUp className="h-3 w-3" />
@@ -407,7 +416,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
                 type="button"
                 disabled={!selectedRowId}
                 onClick={() => moveField(1)}
-                title="下移欄位"
+                title={isEn ? "Move Field Down" : "下移欄位"}
                 className="rounded border border-[#cbd5e1] bg-white p-1 hover:bg-[#f1f5f9] disabled:opacity-40"
               >
                 <ArrowDown className="h-3 w-3" />
@@ -426,12 +435,12 @@ export function TableDesigner({ tab }: TableDesignerProps) {
       <div className="flex border-b border-[#d4d8e0] bg-[#eef2f6] px-2.5 pt-1.5">
         {(
           [
-            { id: "fields", label: `欄位 (${draft.fields.length})` },
-            { id: "indexes", label: `索引 (${draft.indexes.length})` },
-            { id: "fks", label: `外鍵 (${draft.foreignKeys.length})` },
-            { id: "triggers", label: `觸發器 (${draft.triggers.length})` },
-            { id: "options", label: "選項與註解" },
-            { id: "sql", label: "SQL 預覽" },
+            { id: "fields", label: `${isEn ? "Fields" : "欄位"} (${draft.fields.length})` },
+            { id: "indexes", label: `${isEn ? "Indexes" : "索引"} (${draft.indexes.length})` },
+            { id: "fks", label: `${isEn ? "Foreign Keys" : "外鍵"} (${draft.foreignKeys.length})` },
+            { id: "triggers", label: `${isEn ? "Triggers" : "觸發器"} (${draft.triggers.length})` },
+            { id: "options", label: isEn ? "Options & Comment" : "選項與註解" },
+            { id: "sql", label: isEn ? "SQL Preview" : "SQL 預覽" },
           ] as { id: DesignerSubTab; label: string }[]
         ).map((st) => (
           <button
@@ -467,20 +476,28 @@ export function TableDesigner({ tab }: TableDesignerProps) {
           <table className="w-full border-collapse border border-[#e2e8f0] text-left">
             <thead className="bg-[#f4f6f9] text-[#475569]">
               <tr className="h-[26px] border-b border-[#d4d8e0]">
-                <th className="w-40 border-r border-[#e2e8f0] px-2 font-medium">名稱</th>
-                <th className="w-32 border-r border-[#e2e8f0] px-2 font-medium">類型</th>
-                <th className="w-20 border-r border-[#e2e8f0] px-2 font-medium">長度</th>
+                <th className="w-40 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Name" : "名稱"}
+                </th>
+                <th className="w-32 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Type" : "類型"}
+                </th>
+                <th className="w-20 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Length" : "長度"}
+                </th>
                 <th className="w-16 border-r border-[#e2e8f0] px-2 text-center font-medium">
-                  允許 Null
+                  {isEn ? "Nullable" : "允許 Null"}
                 </th>
                 <th className="w-14 border-r border-[#e2e8f0] px-2 text-center font-medium">
-                  主鍵
+                  {isEn ? "Primary" : "主鍵"}
                 </th>
                 <th className="w-16 border-r border-[#e2e8f0] px-2 text-center font-medium">
-                  自動遞增
+                  {isEn ? "Auto Inc" : "自動遞增"}
                 </th>
-                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">預設值</th>
-                <th className="px-2 font-medium">註解</th>
+                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Default" : "預設值"}
+                </th>
+                <th className="px-2 font-medium">{isEn ? "Comment" : "註解"}</th>
               </tr>
             </thead>
             <tbody>
@@ -585,15 +602,19 @@ export function TableDesigner({ tab }: TableDesignerProps) {
           <table className="w-full border-collapse border border-[#e2e8f0] text-left">
             <thead className="bg-[#f4f6f9] text-[#475569]">
               <tr className="h-[26px] border-b border-[#d4d8e0]">
-                <th className="w-48 border-r border-[#e2e8f0] px-2 font-medium">索引名稱</th>
+                <th className="w-48 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Index Name" : "索引名稱"}
+                </th>
                 <th className="w-56 border-r border-[#e2e8f0] px-2 font-medium">
-                  欄位（逗號分隔）
+                  {isEn ? "Columns (comma-separated)" : "欄位（逗號分隔）"}
                 </th>
-                <th className="w-28 border-r border-[#e2e8f0] px-2 font-medium">索引方法</th>
+                <th className="w-28 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Method" : "索引方法"}
+                </th>
                 <th className="w-20 border-r border-[#e2e8f0] px-2 text-center font-medium">
-                  唯一 (Unique)
+                  {isEn ? "Unique" : "唯一 (Unique)"}
                 </th>
-                <th className="px-2 font-medium">註解</th>
+                <th className="px-2 font-medium">{isEn ? "Comment" : "註解"}</th>
               </tr>
             </thead>
             <tbody>
@@ -711,11 +732,21 @@ export function TableDesigner({ tab }: TableDesignerProps) {
           <table className="w-full border-collapse border border-[#e2e8f0] text-left">
             <thead className="bg-[#f4f6f9] text-[#475569]">
               <tr className="h-[26px] border-b border-[#d4d8e0]">
-                <th className="w-40 border-r border-[#e2e8f0] px-2 font-medium">外鍵名稱</th>
-                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">來源欄位</th>
-                <th className="w-32 border-r border-[#e2e8f0] px-2 font-medium">參照 Schema</th>
-                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">參照資料表</th>
-                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">參照欄位</th>
+                <th className="w-40 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "FK Name" : "外鍵名稱"}
+                </th>
+                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Source Column" : "來源欄位"}
+                </th>
+                <th className="w-32 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Ref Schema" : "參照 Schema"}
+                </th>
+                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Ref Table" : "參照資料表"}
+                </th>
+                <th className="w-36 border-r border-[#e2e8f0] px-2 font-medium">
+                  {isEn ? "Ref Column" : "參照欄位"}
+                </th>
                 <th className="w-28 border-r border-[#e2e8f0] px-2 font-medium">ON DELETE</th>
                 <th className="w-28 px-2 font-medium">ON UPDATE</th>
               </tr>
@@ -872,7 +903,9 @@ export function TableDesigner({ tab }: TableDesignerProps) {
           <div className="space-y-3">
             {draft.triggers.length === 0 ? (
               <div className="rounded border border-dashed border-[#cbd5e1] p-6 text-center text-[#64748b]">
-                尚無觸發器；點選上方「+ 新增」建立觸發器定義。
+                {isEn
+                  ? "No triggers yet; click \"+ Add\" above to create one."
+                  : "尚無觸發器；點選上方「+ 新增」建立觸發器定義。"}
               </div>
             ) : (
               draft.triggers.map((trg) => (
@@ -961,21 +994,27 @@ export function TableDesigner({ tab }: TableDesignerProps) {
           <div className="max-w-lg grid grid-cols-[120px_1fr] items-center gap-y-3 gap-x-3">
             {kind !== "postgres" ? (
               <>
-                <label className="text-right text-[#475569]">儲存引擎：</label>
+                <label className="text-right text-[#475569]">
+                  {isEn ? "Storage Engine:" : "儲存引擎："}
+                </label>
                 <input
                   type="text"
                   value={draft.engine}
                   onChange={(e) => setDraft({ ...draft, engine: e.target.value })}
                   className="h-7 rounded border border-[#cbd5e1] px-2 font-mono"
                 />
-                <label className="text-right text-[#475569]">字元集：</label>
+                <label className="text-right text-[#475569]">
+                  {isEn ? "Charset:" : "字元集："}
+                </label>
                 <input
                   type="text"
                   value={draft.charset}
                   onChange={(e) => setDraft({ ...draft, charset: e.target.value })}
                   className="h-7 rounded border border-[#cbd5e1] px-2 font-mono"
                 />
-                <label className="text-right text-[#475569]">定序 (Collation)：</label>
+                <label className="text-right text-[#475569]">
+                  {isEn ? "Collation:" : "定序 (Collation)："}
+                </label>
                 <input
                   type="text"
                   value={draft.collation}
@@ -985,7 +1024,9 @@ export function TableDesigner({ tab }: TableDesignerProps) {
               </>
             ) : (
               <>
-                <label className="text-right text-[#475569]">資料表空間：</label>
+                <label className="text-right text-[#475569]">
+                  {isEn ? "Tablespace:" : "資料表空間："}
+                </label>
                 <input
                   type="text"
                   value={draft.tablespace}
@@ -995,7 +1036,9 @@ export function TableDesigner({ tab }: TableDesignerProps) {
               </>
             )}
 
-            <label className="text-right text-[#475569]">資料表註解：</label>
+            <label className="text-right text-[#475569]">
+              {isEn ? "Table Comment:" : "資料表註解："}
+            </label>
             <textarea
               rows={3}
               value={draft.comment}
@@ -1010,7 +1053,13 @@ export function TableDesigner({ tab }: TableDesignerProps) {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-semibold text-[#334155]">
                 <FileCode2 className="h-3.5 w-3.5 text-[#7c3aed]" />
-                {tab.isNew ? "CREATE TABLE DDL 預覽" : "ALTER TABLE DDL 差異預覽"}
+                {tab.isNew
+                  ? isEn
+                    ? "CREATE TABLE DDL Preview"
+                    : "CREATE TABLE DDL 預覽"
+                  : isEn
+                  ? "ALTER TABLE DDL Diff Preview"
+                  : "ALTER TABLE DDL 差異預覽"}
               </span>
               <button
                 type="button"
@@ -1018,7 +1067,7 @@ export function TableDesigner({ tab }: TableDesignerProps) {
                 className="flex items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2.5 py-1 hover:bg-[#f1f5f9]"
               >
                 <Copy className="h-3 w-3" />
-                <span>複製 SQL</span>
+                <span>{isEn ? "Copy SQL" : "複製 SQL"}</span>
               </button>
             </div>
             <pre className="overflow-auto rounded border border-[#cbd5e1] bg-[#0f172a] p-4 font-mono text-[11px] leading-relaxed text-[#e2e8f0]">

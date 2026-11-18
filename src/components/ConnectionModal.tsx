@@ -324,7 +324,10 @@ export function ConnectionModal({
         : draft.groupName?.trim() || null;
 
     if (!draft.host.trim()) {
-      setNotice({ type: "error", text: "請輸入主機名稱或 IP 位址" });
+      setNotice({
+        type: "error",
+        text: language === "en" ? "Please enter host or IP address" : "請輸入主機名稱或 IP 位址",
+      });
       return null;
     }
 
@@ -343,10 +346,16 @@ export function ConnectionModal({
       const saved = await saveProfile(payload);
       setSelection({ kind: "site", siteId: saved.id });
       setDraft({ ...saved });
-      setNotice({ type: "info", text: `已儲存站台「${saved.name}」` });
+      setNotice({
+        type: "info",
+        text: language === "en" ? `Saved site "${saved.name}"` : `已儲存站台「${saved.name}」`,
+      });
       return saved;
     } catch (err) {
-      setNotice({ type: "error", text: `儲存失敗：${String(err)}` });
+      setNotice({
+        type: "error",
+        text: language === "en" ? `Save failed: ${String(err)}` : `儲存失敗：${String(err)}`,
+      });
       return null;
     } finally {
       setSaving(false);
@@ -400,7 +409,10 @@ export function ConnectionModal({
     } else {
       selectNewSiteInFolder(null);
     }
-    setNotice({ type: "info", text: "已刪除站台" });
+    setNotice({
+      type: "info",
+      text: language === "en" ? "Site deleted" : "已刪除站台",
+    });
   };
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,9 +422,21 @@ export function ConnectionModal({
     try {
       const text = await file.text();
       const count = await importSitesFromYaml(text);
-      setNotice({ type: "info", text: `成功從 ${file.name} 匯入 ${count} 個站台！` });
+      setNotice({
+        type: "info",
+        text:
+          language === "en"
+            ? `Imported ${count} site(s) from ${file.name}!`
+            : `成功從 ${file.name} 匯入 ${count} 個站台！`,
+      });
     } catch (err) {
-      setNotice({ type: "error", text: `YAML 匯入失敗：${String(err)}` });
+      setNotice({
+        type: "error",
+        text:
+          language === "en"
+            ? `YAML import failed: ${String(err)}`
+            : `YAML 匯入失敗：${String(err)}`,
+      });
     }
   };
 
@@ -1440,7 +1464,7 @@ export function ConnectionModal({
                                 type="button"
                                 disabled={!draft.ssh.useSsh}
                                 onClick={() => sshKeyInputRef.current?.click()}
-                                title="選擇私密金鑰檔案"
+                                title={language === "en" ? "Choose private key file" : "選擇私密金鑰檔案"}
                                 className={`${dialogBtnCls} px-2.5`}
                               >
                                 ...
@@ -1768,7 +1792,7 @@ export function ConnectionModal({
                 >
                   <div className="flex items-center gap-2 font-semibold">
                     <FolderPlus className="h-4 w-4 text-[#eab308]" />
-                    <span>新增站台資料夾</span>
+                    <span>{language === "en" ? "New Site Folder" : "新增站台資料夾"}</span>
                   </div>
                   <input
                     autoFocus
@@ -1777,7 +1801,11 @@ export function ConnectionModal({
                     onChange={(e) =>
                       setSubPrompt({ ...subPrompt, name: e.target.value })
                     }
-                    placeholder="例如：Production / Staging / Local"
+                    placeholder={
+                      language === "en"
+                        ? "e.g. Production / Staging / Local"
+                        : "例如：Production / Staging / Local"
+                    }
                     className={inputCls}
                   />
                   <div className="flex justify-end gap-2">
@@ -1786,13 +1814,13 @@ export function ConnectionModal({
                       onClick={() => setSubPrompt(null)}
                       className={dialogBtnCls}
                     >
-                      取消
+                      {t(language, "cancel")}
                     </button>
                     <button
                       type="submit"
                       className="rounded bg-[#2563eb] px-4 py-1 text-white hover:bg-[#1d4ed8]"
                     >
-                      建立資料夾
+                      {language === "en" ? "Create Folder" : "建立資料夾"}
                     </button>
                   </div>
                 </form>
@@ -1808,7 +1836,9 @@ export function ConnectionModal({
                   }}
                   className="space-y-3"
                 >
-                  <div className="font-semibold">重新命名站台</div>
+                  <div className="font-semibold">
+                    {language === "en" ? "Rename Site" : "重新命名站台"}
+                  </div>
                   <input
                     autoFocus
                     type="text"
@@ -1824,13 +1854,13 @@ export function ConnectionModal({
                       onClick={() => setSubPrompt(null)}
                       className={dialogBtnCls}
                     >
-                      取消
+                      {t(language, "cancel")}
                     </button>
                     <button
                       type="submit"
                       className="rounded bg-[#2563eb] px-4 py-1 text-white hover:bg-[#1d4ed8]"
                     >
-                      確定
+                      {language === "en" ? "Confirm" : "確定"}
                     </button>
                   </div>
                 </form>
@@ -1848,10 +1878,12 @@ export function ConnectionModal({
                   }}
                   className="space-y-3"
                 >
-                  <div className="font-semibold">另存為新站台</div>
+                  <div className="font-semibold">
+                    {language === "en" ? "Save As New Site" : "另存為新站台"}
+                  </div>
                   <div>
                     <label className="mb-1 block text-[11px] text-[#64748b]">
-                      站台名稱
+                      {t(language, "siteName")}
                     </label>
                     <input
                       autoFocus
@@ -1865,7 +1897,9 @@ export function ConnectionModal({
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] text-[#64748b]">
-                      所屬資料夾 (可輸入新資料夾名稱)
+                      {language === "en"
+                        ? "Folder (or type a new folder name)"
+                        : "所屬資料夾 (可輸入新資料夾名稱)"}
                     </label>
                     <input
                       type="text"
@@ -1874,7 +1908,9 @@ export function ConnectionModal({
                       onChange={(e) =>
                         setSubPrompt({ ...subPrompt, folder: e.target.value })
                       }
-                      placeholder="(留空代表根目錄)"
+                      placeholder={
+                        language === "en" ? "(Leave blank for root)" : "(留空代表根目錄)"
+                      }
                       className={inputCls}
                     />
                     <datalist id="sqlcraft-folder-datalist">
@@ -1889,13 +1925,13 @@ export function ConnectionModal({
                       onClick={() => setSubPrompt(null)}
                       className={dialogBtnCls}
                     >
-                      取消
+                      {t(language, "cancel")}
                     </button>
                     <button
                       type="submit"
                       className="rounded bg-[#2563eb] px-4 py-1 text-white hover:bg-[#1d4ed8]"
                     >
-                      儲存
+                      {t(language, "save")}
                     </button>
                   </div>
                 </form>
@@ -1903,7 +1939,9 @@ export function ConnectionModal({
 
               {subPrompt.kind === "importYaml" && (
                 <div className="space-y-3">
-                  <div className="font-semibold">從 YAML 匯入站台設定</div>
+                  <div className="font-semibold">
+                    {language === "en" ? "Import Sites from YAML" : "從 YAML 匯入站台設定"}
+                  </div>
                   <textarea
                     rows={9}
                     value={subPrompt.text}
@@ -1925,7 +1963,7 @@ export function ConnectionModal({
                       onClick={() => setSubPrompt(null)}
                       className={dialogBtnCls}
                     >
-                      取消
+                      {t(language, "cancel")}
                     </button>
                     <button
                       type="button"
@@ -1934,20 +1972,26 @@ export function ConnectionModal({
                           .then((count) => {
                             setNotice({
                               type: "info",
-                              text: `已成功匯入 ${count} 個站台！`,
+                              text:
+                                language === "en"
+                                  ? `Imported ${count} site(s)!`
+                                  : `已成功匯入 ${count} 個站台！`,
                             });
                             setSubPrompt(null);
                           })
                           .catch((err) => {
                             setNotice({
                               type: "error",
-                              text: `匯入失敗：${String(err)}`,
+                              text:
+                                language === "en"
+                                  ? `Import failed: ${String(err)}`
+                                  : `匯入失敗：${String(err)}`,
                             });
                           });
                       }}
                       className="rounded bg-[#2563eb] px-4 py-1 text-white hover:bg-[#1d4ed8]"
                     >
-                      匯入
+                      {language === "en" ? "Import" : "匯入"}
                     </button>
                   </div>
                 </div>
@@ -1955,9 +1999,15 @@ export function ConnectionModal({
 
               {subPrompt.kind === "exportYaml" && (
                 <div className="space-y-3">
-                  <div className="font-semibold">匯出站台設定檔 (YAML)</div>
+                  <div className="font-semibold">
+                    {language === "en"
+                      ? "Export Site Configuration (YAML)"
+                      : "匯出站台設定檔 (YAML)"}
+                  </div>
                   <p className="text-[11px] text-[#64748b]">
-                    基於安全性考量，匯出的 YAML 設定檔不會包含明文密碼。
+                    {language === "en"
+                      ? "For security, exported YAML files do not include plaintext passwords."
+                      : "基於安全性考量，匯出的 YAML 設定檔不會包含明文密碼。"}
                   </p>
                   <textarea
                     readOnly
@@ -1986,7 +2036,9 @@ export function ConnectionModal({
                       className={dialogBtnCls}
                     >
                       <Download className="h-3.5 w-3.5 text-[#2563eb]" />
-                      <span>下載 sqlcraft-sites.yml</span>
+                      <span>
+                        {language === "en" ? "Download sqlcraft-sites.yml" : "下載 sqlcraft-sites.yml"}
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -1994,14 +2046,14 @@ export function ConnectionModal({
                       className={dialogBtnCls}
                     >
                       <Copy className="h-3.5 w-3.5" />
-                      <span>複製全部</span>
+                      <span>{language === "en" ? "Copy All" : "複製全部"}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setSubPrompt(null)}
                       className={dialogBtnCls}
                     >
-                      關閉
+                      {t(language, "close")}
                     </button>
                   </div>
                 </div>
@@ -2038,7 +2090,7 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left font-medium hover:bg-[#eff6ff]"
                   >
                     <LogIn className="h-3.5 w-3.5 text-[#2563eb]" />
-                    <span>連線 (Login)</span>
+                    <span>{t(language, "loginConnect")}</span>
                   </button>
                   <div className="my-1 border-t border-[#e2e8f0]" />
                   <button
@@ -2050,7 +2102,7 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                   >
                     <Edit3 className="h-3.5 w-3.5" />
-                    <span>重新命名...</span>
+                    <span>{language === "en" ? "Rename..." : "重新命名..."}</span>
                   </button>
                   <button
                     type="button"
@@ -2061,10 +2113,12 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    <span>複製站台</span>
+                    <span>{language === "en" ? "Clone Site" : "複製站台"}</span>
                   </button>
                   <div className="my-1 border-t border-[#e2e8f0]" />
-                  <div className="px-3 py-1 text-[10px] text-[#94a3b8]">移至資料夾</div>
+                  <div className="px-3 py-1 text-[10px] text-[#94a3b8]">
+                    {language === "en" ? "Move to Folder" : "移至資料夾"}
+                  </div>
                   {site.groupName && (
                     <button
                       type="button"
@@ -2074,7 +2128,7 @@ export function ConnectionModal({
                       }}
                       className="flex w-full items-center gap-2 px-3 py-1 text-left hover:bg-[#eff6ff]"
                     >
-                      <span>移至根目錄</span>
+                      <span>{language === "en" ? "Move to Root" : "移至根目錄"}</span>
                     </button>
                   )}
                   {allFolders
@@ -2103,7 +2157,7 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[#dc2626] hover:bg-[#fef2f2]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>刪除站台</span>
+                    <span>{language === "en" ? "Delete Site" : "刪除站台"}</span>
                   </button>
                 </>
               );
@@ -2122,7 +2176,7 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                   >
                     <Plus className="h-3.5 w-3.5 text-[#2563eb]" />
-                    <span>在此資料夾新增站台</span>
+                    <span>{language === "en" ? "New Site Here" : "在此資料夾新增站台"}</span>
                   </button>
                   <button
                     type="button"
@@ -2133,7 +2187,7 @@ export function ConnectionModal({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[#dc2626] hover:bg-[#fef2f2]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>刪除資料夾</span>
+                    <span>{language === "en" ? "Delete Folder" : "刪除資料夾"}</span>
                   </button>
                 </>
               );
@@ -2150,7 +2204,7 @@ export function ConnectionModal({
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
                   <Plus className="h-3.5 w-3.5 text-[#2563eb]" />
-                  <span>新增站台</span>
+                  <span>{t(language, "newSite")}</span>
                 </button>
                 <button
                   type="button"
@@ -2161,7 +2215,7 @@ export function ConnectionModal({
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-[#eff6ff]"
                 >
                   <FolderPlus className="h-3.5 w-3.5 text-[#eab308]" />
-                  <span>新增資料夾...</span>
+                  <span>{language === "en" ? "New Folder..." : "新增資料夾..."}</span>
                 </button>
               </>
             )}

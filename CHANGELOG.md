@@ -5,6 +5,14 @@ All notable changes to **SqlCraft** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-11-18
+
+### Added
+- **Bilingual README & Screenshots**: Added English and Traditional Chinese UI screenshots (`docs/screenshots/`) and created `README.zh-TW.md` with top-level language switcher links.
+
+### Fixed
+- **Full English / Traditional Chinese i18n Coverage (`workbenchStore.ts`, `WorkspaceTabs.tsx`, `App.tsx`)**: Localized the Windows/Linux `Objects` tab title, the entire unified Windows/Linux top menu bar (`File`, `Edit`, `View`, `Connect`, `Tools`, `Settings`), and all remaining `statusMessage`, `Recent Activity` log entries, and dynamic tab titles (`Design`, `New Table`, `Query`).
+
 ## [0.1.1] - 2026-11-18
 
 ### Added

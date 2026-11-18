@@ -76,7 +76,9 @@ function parseCellInput(raw: string, original: CellValue | undefined): CellValue
 }
 
 export function DataViewerGrid({ tab }: DataViewerGridProps) {
-  const { refreshTableDataTab, applyGridChangeSet, getProfileById } = useWorkbenchStore();
+  const { refreshTableDataTab, applyGridChangeSet, getProfileById, language } =
+    useWorkbenchStore();
+  const isEn = language === "en";
   const profile = getProfileById(tab.profileId);
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -380,13 +382,13 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
       items: [
         {
           id: "set-null",
-          label: "設為 NULL",
+          label: isEn ? "Set NULL" : "設為 NULL",
           icon: <Eraser className="h-3.5 w-3.5 text-[#64748b]" />,
           onClick: () => setCellTo(null),
         },
         {
           id: "set-empty",
-          label: "設為空字串 ('')",
+          label: isEn ? "Set Empty String ('')" : "設為空字串 ('')",
           icon: <Eraser className="h-3.5 w-3.5 text-[#0891b2]" />,
           onClick: () => setCellTo(""),
         },
@@ -394,7 +396,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
           ? [
               {
                 id: "revert-cell",
-                label: "還原儲存格",
+                label: isEn ? "Revert Cell" : "還原儲存格",
                 icon: <RotateCcw className="h-3.5 w-3.5 text-[#d97706]" />,
                 onClick: () =>
                   setEditedCells((prev) => {
@@ -408,14 +410,14 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
         { id: "div-1", divider: true },
         {
           id: "copy-cell",
-          label: "複製儲存格值",
+          label: isEn ? "Copy Cell Value" : "複製儲存格值",
           icon: <Copy className="h-3.5 w-3.5" />,
           onClick: () =>
             void navigator.clipboard?.writeText(formatCellDisplay(cellVal)),
         },
         {
           id: "copy-insert",
-          label: "複製整列為 INSERT SQL",
+          label: isEn ? "Copy Row as INSERT SQL" : "複製整列為 INSERT SQL",
           icon: <FileCode2 className="h-3.5 w-3.5 text-[#7c3aed]" />,
           onClick: () => {
             const sql = buildRowAsInsertSql(
@@ -431,7 +433,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
         },
         {
           id: "copy-json",
-          label: "複製整列為 JSON",
+          label: isEn ? "Copy Row as JSON" : "複製整列為 JSON",
           icon: <Copy className="h-3.5 w-3.5 text-[#059669]" />,
           onClick: () => {
             const obj: Record<string, CellValue> = {};
@@ -446,7 +448,11 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
           id: "delete-row",
           label:
             !isInsert && deletedRowIndices.includes(rowIdx)
-              ? "取消標記刪除"
+              ? isEn
+                ? "Unmark Delete"
+                : "取消標記刪除"
+              : isEn
+              ? "Mark Row for Delete"
               : "標記刪除此列",
           icon: <Trash2 className="h-3.5 w-3.5" />,
           danger: true,
@@ -487,7 +493,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
           >
             <Filter className="h-3 w-3" />
             <span>
-              篩選 ({draftFilters.filter((f) => f.enabled).length})
+              {isEn ? "Filter" : "篩選"} ({draftFilters.filter((f) => f.enabled).length})
             </span>
           </button>
 
@@ -501,7 +507,9 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             }`}
           >
             <ArrowUpDown className="h-3 w-3" />
-            <span>排序 ({draftSorts.length})</span>
+            <span>
+              {isEn ? "Sort" : "排序"} ({draftSorts.length})
+            </span>
           </button>
 
           <div className="relative">
@@ -515,13 +523,15 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               }`}
             >
               <Columns3 className="h-3 w-3" />
-              <span>欄位 ({visibleColumns.length}/{resultCols.length})</span>
+              <span>
+                {isEn ? "Columns" : "欄位"} ({visibleColumns.length}/{resultCols.length})
+              </span>
             </button>
 
             {colPickerOpen && (
               <div className="absolute left-0 top-full z-40 mt-1 w-52 rounded border border-[#cbd5e1] bg-white p-2 shadow-lg">
                 <div className="mb-1.5 flex items-center justify-between border-b border-[#e2e8f0] pb-1 text-[10px] font-semibold">
-                  <span>顯示欄位</span>
+                  <span>{isEn ? "Visible Columns" : "顯示欄位"}</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -530,7 +540,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                     }}
                     className="text-[#2563eb] hover:underline"
                   >
-                    全部重設
+                    {isEn ? "Reset All" : "全部重設"}
                   </button>
                 </div>
                 <div className="max-h-48 overflow-y-auto space-y-1">
@@ -572,7 +582,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             className="flex h-[20px] items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 text-[10px] hover:bg-[#eff6ff] disabled:opacity-40"
           >
             <Download className="h-3 w-3 text-[#059669]" />
-            <span>匯出</span>
+            <span>{isEn ? "Export" : "匯出"}</span>
           </button>
           <div className="flex h-[20px] w-40 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-1.5">
             <Search className="h-3 w-3 text-[#9ca3af]" />
@@ -580,7 +590,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               type="text"
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
-              placeholder="快速過濾本頁..."
+              placeholder={isEn ? "Quick filter page..." : "快速過濾本頁..."}
               className="w-full bg-transparent text-[10px] outline-none"
             />
           </div>
@@ -668,7 +678,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                 <input
                   type="text"
                   value={rule.value}
-                  placeholder={rule.operator === "IN" ? "a, b, c" : "條件值"}
+                  placeholder={rule.operator === "IN" ? "a, b, c" : isEn ? "Value" : "條件值"}
                   onChange={(e) =>
                     setDraftFilters((prev) =>
                       prev.map((r) =>
@@ -710,7 +720,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               }
               className="rounded border border-[#cbd5e1] bg-white px-2 py-0.5 hover:bg-[#f1f5f9]"
             >
-              + 新增條件
+              {isEn ? "+ Add Condition" : "+ 新增條件"}
             </button>
             <button
               type="button"
@@ -719,7 +729,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               }
               className="rounded bg-[#2563eb] px-2.5 py-0.5 font-medium text-white hover:bg-[#1d4ed8]"
             >
-              套用篩選
+              {isEn ? "Apply Filter" : "套用篩選"}
             </button>
             {draftFilters.length > 0 && (
               <button
@@ -730,7 +740,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                 }}
                 className="rounded px-2 py-0.5 text-[#64748b] hover:bg-[#e2e8f0]"
               >
-                清除全部
+                {isEn ? "Clear All" : "清除全部"}
               </button>
             )}
           </div>
@@ -775,8 +785,8 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                 }
                 className="h-6 rounded border border-[#cbd5e1] bg-white px-1.5 font-mono"
               >
-                <option value="ASC">ASC (升冪)</option>
-                <option value="DESC">DESC (降冪)</option>
+                <option value="ASC">{isEn ? "ASC (Ascending)" : "ASC (升冪)"}</option>
+                <option value="DESC">{isEn ? "DESC (Descending)" : "DESC (降冪)"}</option>
               </select>
               <button
                 type="button"
@@ -800,7 +810,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               }
               className="rounded border border-[#cbd5e1] bg-white px-2 py-0.5 hover:bg-[#f1f5f9]"
             >
-              + 新增排序欄位
+              {isEn ? "+ Add Sort Column" : "+ 新增排序欄位"}
             </button>
             <button
               type="button"
@@ -809,7 +819,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
               }
               className="rounded bg-[#2563eb] px-2.5 py-0.5 font-medium text-white hover:bg-[#1d4ed8]"
             >
-              套用排序
+              {isEn ? "Apply Sort" : "套用排序"}
             </button>
           </div>
         </div>
@@ -817,7 +827,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
 
       {applyError && (
         <div className="flex items-center justify-between border-b border-[#fecaca] bg-[#fef2f2] px-3 py-1.5 font-mono text-[10px] text-[#991b1b]">
-          <span>套用失敗：{applyError}</span>
+          <span>{isEn ? `Apply failed: ${applyError}` : `套用失敗：${applyError}`}</span>
           <button type="button" onClick={() => setApplyError(null)}>
             <X className="h-3 w-3" />
           </button>
@@ -832,7 +842,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
       ) : tab.loading ? (
         <div className="flex flex-1 items-center justify-center gap-2 text-[#64748b]">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>載入資料列中...</span>
+          <span>{isEn ? "Loading rows..." : "載入資料列中..."}</span>
         </div>
       ) : (
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto relative">
@@ -855,7 +865,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                       type="button"
                       onClick={() => handleHeaderSortClick(col.name)}
                       className="flex min-w-0 flex-1 items-center gap-1 text-left hover:text-[#1d4ed8]"
-                      title={`${col.name} (${col.dataType}) — 點擊排序`}
+                      title={`${col.name} (${col.dataType}) — ${isEn ? "Click to sort" : "點擊排序"}`}
                     >
                       {pkSet.has(col.name) && (
                         <span className="text-[10px]" title="Primary Key">
@@ -1051,7 +1061,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
           <button
             type="button"
             onClick={handleAddRow}
-            title="新增列 (+)"
+            title={isEn ? "Add Row (+)" : "新增列 (+)"}
             className="flex h-5 w-6 items-center justify-center rounded border border-[#cbd5e1] bg-white hover:bg-[#eff6ff]"
           >
             <Plus className="h-3.5 w-3.5 text-[#16a34a]" />
@@ -1060,7 +1070,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             type="button"
             disabled={!selectedCell}
             onClick={handleDeleteSelectedRow}
-            title="刪除選取列 (-)"
+            title={isEn ? "Delete Selected Row (-)" : "刪除選取列 (-)"}
             className="flex h-5 w-6 items-center justify-center rounded border border-[#cbd5e1] bg-white hover:bg-[#fef2f2] disabled:opacity-40"
           >
             <Minus className="h-3.5 w-3.5 text-[#dc2626]" />
@@ -1069,7 +1079,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             type="button"
             disabled={pendingChangeCount === 0 || applying}
             onClick={() => void handleApplyChanges()}
-            title="套用變更 (Apply Changes)"
+            title={isEn ? "Apply Changes" : "套用變更 (Apply Changes)"}
             className={`flex h-5 items-center gap-1 rounded border px-2 font-medium ${
               pendingChangeCount > 0
                 ? "border-[#16a34a] bg-[#16a34a] text-white hover:bg-[#15803d]"
@@ -1077,17 +1087,20 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             }`}
           >
             <Check className="h-3 w-3" />
-            <span>套用{pendingChangeCount > 0 ? ` (${pendingChangeCount})` : ""}</span>
+            <span>
+              {isEn ? "Apply" : "套用"}
+              {pendingChangeCount > 0 ? ` (${pendingChangeCount})` : ""}
+            </span>
           </button>
           <button
             type="button"
             disabled={pendingChangeCount === 0}
             onClick={handleDiscardChanges}
-            title="放棄變更 (Discard)"
+            title={isEn ? "Discard Changes" : "放棄變更 (Discard)"}
             className="flex h-5 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#fef2f2] disabled:opacity-40"
           >
             <X className="h-3 w-3 text-[#dc2626]" />
-            <span>放棄</span>
+            <span>{isEn ? "Discard" : "放棄"}</span>
           </button>
           <button
             type="button"
@@ -1096,12 +1109,12 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             className="flex h-5 items-center gap-1 rounded border border-[#cbd5e1] bg-white px-2 hover:bg-[#f1f5f9] disabled:opacity-40"
           >
             <FileCode2 className="h-3 w-3 text-[#7c3aed]" />
-            <span>SQL 預覽</span>
+            <span>{isEn ? "SQL Preview" : "SQL 預覽"}</span>
           </button>
           <button
             type="button"
             onClick={() => void refreshTableDataTab(tab.id)}
-            title="重新整理"
+            title={isEn ? "Refresh" : "重新整理"}
             className="flex h-5 w-6 items-center justify-center rounded border border-[#cbd5e1] bg-white hover:bg-[#f1f5f9]"
           >
             <RefreshCw className={`h-3 w-3 ${tab.loading ? "animate-spin" : ""}`} />
@@ -1110,7 +1123,9 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
 
         {/* Right Pagination Controls */}
         <div className="flex items-center gap-1.5 text-[10px] text-[#475569]">
-          <span>本頁 {displayRows.length} 筆</span>
+          <span>
+            {isEn ? `${displayRows.length} rows on page` : `本頁 ${displayRows.length} 筆`}
+          </span>
           <select
             value={tab.pageSize}
             onChange={(e) =>
@@ -1121,10 +1136,10 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
             }
             className="h-5 rounded border border-[#cbd5e1] bg-white px-1 font-mono"
           >
-            <option value={100}>100 / 頁</option>
-            <option value={500}>500 / 頁</option>
-            <option value={1000}>1000 / 頁</option>
-            <option value={5000}>5000 / 頁</option>
+            <option value={100}>100 / {isEn ? "page" : "頁"}</option>
+            <option value={500}>500 / {isEn ? "page" : "頁"}</option>
+            <option value={1000}>1000 / {isEn ? "page" : "頁"}</option>
+            <option value={5000}>5000 / {isEn ? "page" : "頁"}</option>
           </select>
 
           <button
@@ -1143,7 +1158,9 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
           >
             <ChevronLeft className="h-3 w-3" />
           </button>
-          <span className="px-1 font-mono">第 {tab.page} 頁</span>
+          <span className="px-1 font-mono">
+            {isEn ? `Page ${tab.page}` : `第 ${tab.page} 頁`}
+          </span>
           <button
             type="button"
             disabled={originalRows.length < tab.pageSize}
@@ -1186,13 +1203,17 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
           <div className="flex w-full max-w-2xl flex-col rounded border border-[#cbd5e1] bg-white shadow-xl text-xs">
             <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-2.5 font-semibold">
-              <span>待套用變更 SQL 預覽（{sqlPreviewModal.statements.length} 句）</span>
+              <span>
+                {isEn
+                  ? `Pending Changes SQL Preview (${sqlPreviewModal.statements.length} statements)`
+                  : `待套用變更 SQL 預覽（${sqlPreviewModal.statements.length} 句）`}
+              </span>
               <button
                 type="button"
                 onClick={() => setSqlPreviewModal(null)}
                 className="rounded px-2 py-0.5 text-[#64748b] hover:bg-[#f1f5f9]"
               >
-                關閉
+                {isEn ? "Close" : "關閉"}
               </button>
             </div>
             {sqlPreviewModal.warning && (
@@ -1213,7 +1234,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                 }
                 className="rounded border border-[#cbd5e1] px-3 py-1 hover:bg-[#f1f5f9]"
               >
-                複製 SQL
+                {isEn ? "Copy SQL" : "複製 SQL"}
               </button>
               <button
                 type="button"
@@ -1223,7 +1244,7 @@ export function DataViewerGrid({ tab }: DataViewerGridProps) {
                 }}
                 className="rounded bg-[#16a34a] px-3 py-1 font-medium text-white hover:bg-[#15803d]"
               >
-                確認執行
+                {isEn ? "Confirm & Execute" : "確認執行"}
               </button>
             </div>
           </div>

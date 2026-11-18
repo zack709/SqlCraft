@@ -242,19 +242,19 @@ export function ObjectListPane() {
         items: [
           {
             id: "open",
-            label: "開啟資料表",
+            label: t(language, "openTable"),
             icon: <Table2 className="h-3.5 w-3.5 text-[#2563eb]" />,
             onClick: () => void openTableDataTab(profile.id, database, schema, objName),
           },
           {
             id: "design",
-            label: "設計資料表",
+            label: t(language, "designTable"),
             icon: <Edit3 className="h-3.5 w-3.5 text-[#d97706]" />,
             onClick: () => void openTableDesignTab(profile.id, database, schema, objName),
           },
           {
             id: "query",
-            label: "新建 SELECT 查詢",
+            label: language === "en" ? "New SELECT Query" : "新建 SELECT 查詢",
             icon: <Play className="h-3.5 w-3.5 text-[#16a34a]" />,
             onClick: () =>
               openQueryTab(
@@ -269,13 +269,13 @@ export function ObjectListPane() {
           { id: "div1", divider: true },
           {
             id: "rename",
-            label: "重新命名...",
+            label: language === "en" ? "Rename..." : "重新命名...",
             icon: <Edit3 className="h-3.5 w-3.5" />,
             onClick: () => setRenameTarget({ oldName: objName, newName: objName }),
           },
           {
             id: "dump",
-            label: "檢視 / 匯出 DDL (Dump SQL)",
+            label: language === "en" ? "View / Dump SQL (DDL)" : "檢視 / 匯出 DDL (Dump SQL)",
             icon: <FileCode2 className="h-3.5 w-3.5 text-[#7c3aed]" />,
             onClick: async () => {
               const ddl = await getTableDdl(profile.id, database, schema, "TABLE", objName);
@@ -284,21 +284,21 @@ export function ObjectListPane() {
           },
           {
             id: "copy",
-            label: "複製名稱",
+            label: language === "en" ? "Copy Name" : "複製名稱",
             icon: <Copy className="h-3.5 w-3.5" />,
             onClick: () => void navigator.clipboard?.writeText(objName),
           },
           { id: "div2", divider: true },
           {
             id: "truncate",
-            label: "清空資料表 (TRUNCATE)",
+            label: language === "en" ? "Truncate Table" : "清空資料表 (TRUNCATE)",
             icon: <Trash2 className="h-3.5 w-3.5" />,
             danger: true,
             onClick: () => void truncateTable(profile.id, database, schema, objName),
           },
           {
             id: "drop",
-            label: "刪除資料表 (DROP)",
+            label: language === "en" ? "Drop Table" : "刪除資料表 (DROP)",
             icon: <Trash2 className="h-3.5 w-3.5" />,
             danger: true,
             onClick: () => void dropTable(profile.id, database, schema, objName),
@@ -314,7 +314,7 @@ export function ObjectListPane() {
             ? [
                 {
                   id: "open-view",
-                  label: "開啟檢視表資料",
+                  label: language === "en" ? "Open View Data" : "開啟檢視表資料",
                   icon: <Eye className="h-3.5 w-3.5 text-[#0891b2]" />,
                   onClick: () =>
                     void openTableDataTab(profile.id, database, schema, objName),
@@ -323,7 +323,7 @@ export function ObjectListPane() {
             : []),
           {
             id: "copy-obj",
-            label: "複製名稱",
+            label: language === "en" ? "Copy Name" : "複製名稱",
             icon: <Copy className="h-3.5 w-3.5" />,
             onClick: () => void navigator.clipboard?.writeText(objName),
           },
@@ -575,54 +575,62 @@ export function ObjectListPane() {
               {category === "views" && (
                 <tr>
                   <th className="w-[260px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    檢視表名稱
+                    {language === "en" ? "View Name" : "檢視表名稱"}
                   </th>
                   <th className="w-[160px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    定義者 / 擁有者
+                    {language === "en" ? "Definer / Owner" : "定義者 / 擁有者"}
                   </th>
                   <th className="w-[100px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    可更新
+                    {language === "en" ? "Updatable" : "可更新"}
                   </th>
-                  <th className="px-2.5 font-medium">註解</th>
+                  <th className="px-2.5 font-medium">
+                    {language === "en" ? "Comment" : "註解"}
+                  </th>
                 </tr>
               )}
               {category === "routines" && (
                 <tr>
                   <th className="w-[240px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    名稱
+                    {language === "en" ? "Name" : "名稱"}
                   </th>
                   <th className="w-[100px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    類型
+                    {language === "en" ? "Type" : "類型"}
                   </th>
                   <th className="w-[140px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    回傳型別
+                    {language === "en" ? "Return Type" : "回傳型別"}
                   </th>
                   <th className="w-[140px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    定義者
+                    {language === "en" ? "Definer" : "定義者"}
                   </th>
-                  <th className="px-2.5 font-medium">註解</th>
+                  <th className="px-2.5 font-medium">
+                    {language === "en" ? "Comment" : "註解"}
+                  </th>
                 </tr>
               )}
               {category === "sequences" && (
                 <tr>
                   <th className="w-[260px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    序列名稱
+                    {language === "en" ? "Sequence Name" : "序列名稱"}
                   </th>
                   <th className="w-[120px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    資料型別
+                    {language === "en" ? "Data Type" : "資料型別"}
                   </th>
-                  <th className="px-2.5 font-medium">目前數值</th>
+                  <th className="px-2.5 font-medium">
+                    {language === "en" ? "Current Value" : "目前數值"}
+                  </th>
                 </tr>
               )}
               {category === "queries" && (
                 <tr>
                   <th className="w-[240px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    查詢名稱
+                    {language === "en" ? "Query Name" : "查詢名稱"}
                   </th>
                   <th className="w-[160px] border-r border-[#e2e8f0] px-2.5 font-medium">
-                    修改日期
+                    {language === "en" ? "Modified" : "修改日期"}
                   </th>
-                  <th className="px-2.5 font-medium">SQL 預覽</th>
+                  <th className="px-2.5 font-medium">
+                    {language === "en" ? "SQL Preview" : "SQL 預覽"}
+                  </th>
                 </tr>
               )}
             </thead>
@@ -775,13 +783,13 @@ export function ObjectListPane() {
                         items: [
                           {
                             id: "open-sq",
-                            label: "開啟查詢",
+                            label: language === "en" ? "Open Query" : "開啟查詢",
                             icon: <Terminal className="h-3.5 w-3.5 text-[#059669]" />,
                             onClick: () => openSavedQueryTab(q),
                           },
                           {
                             id: "del-sq",
-                            label: "刪除查詢",
+                            label: language === "en" ? "Delete Query" : "刪除查詢",
                             icon: <Trash2 className="h-3.5 w-3.5" />,
                             danger: true,
                             onClick: () => void deleteSavedQuery(q.id),
@@ -836,7 +844,9 @@ export function ObjectListPane() {
             }}
             className="w-80 rounded border border-[#cbd5e1] bg-white p-4 shadow-xl text-xs"
           >
-            <h3 className="font-semibold text-[#0f172a]">重新命名資料表</h3>
+            <h3 className="font-semibold text-[#0f172a]">
+              {language === "en" ? "Rename Table" : "重新命名資料表"}
+            </h3>
             <input
               autoFocus
               type="text"
@@ -852,13 +862,13 @@ export function ObjectListPane() {
                 onClick={() => setRenameTarget(null)}
                 className="rounded border border-[#cbd5e1] px-3 py-1 hover:bg-[#f1f5f9]"
               >
-                取消
+                {t(language, "cancel")}
               </button>
               <button
                 type="submit"
                 className="rounded bg-[#2563eb] px-3 py-1 text-white hover:bg-[#1d4ed8]"
               >
-                確定
+                {language === "en" ? "Confirm" : "確定"}
               </button>
             </div>
           </form>
@@ -879,7 +889,7 @@ export function ObjectListPane() {
                 onClick={() => setDumpDdl(null)}
                 className="rounded px-2 py-0.5 text-[#64748b] hover:bg-[#f1f5f9]"
               >
-                關閉
+                {t(language, "close")}
               </button>
             </div>
             <pre className="max-h-96 overflow-auto bg-[#0f172a] p-4 font-mono text-[11px] text-[#e2e8f0]">
@@ -891,7 +901,7 @@ export function ObjectListPane() {
                 onClick={() => void navigator.clipboard?.writeText(dumpDdl.sql)}
                 className="rounded bg-[#2563eb] px-3 py-1 text-white hover:bg-[#1d4ed8]"
               >
-                複製 SQL
+                {language === "en" ? "Copy SQL" : "複製 SQL"}
               </button>
             </div>
           </div>

@@ -134,11 +134,11 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
       .filter((s) => s.resultSet && s.resultSet.columns.length > 0)
       .map((s, idx) => ({
         id: `result-${s.index}`,
-        label: `結果 ${idx + 1}`,
+        label: language === "en" ? `Result ${idx + 1}` : `結果 ${idx + 1}`,
         statement: s,
         resultSet: s.resultSet!,
       }));
-  }, [tab.response]);
+  }, [tab.response, language]);
 
   // Auto-switch to first Result tab when results arrive
   useEffect(() => {
@@ -216,7 +216,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
               isMac ? "rounded-md border-black/15" : "rounded border-[#cbd5e1]"
             }`}
           >
-            <option value="">(預設資料庫)</option>
+            <option value="">{language === "en" ? "(Default Database)" : "(預設資料庫)"}</option>
             {dbs.map((d) => (
               <option key={d.name} value={d.name}>
                 {d.name}
@@ -251,7 +251,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             type="button"
             disabled={tab.running}
             onClick={() => void runQueryInTab(tab.id)}
-            title="執行全部 (Run All)"
+            title={language === "en" ? "Run All" : "執行全部 (Run All)"}
             className={`flex h-6 items-center gap-1 bg-[#16a34a] px-2.5 font-medium text-white hover:bg-[#15803d] disabled:opacity-50 ${
               isMac ? "rounded-md" : "rounded"
             }`}
@@ -391,7 +391,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                 : "text-[#475569] hover:bg-[#e2e8f0]"
             }`}
           >
-            訊息
+            {language === "en" ? "Messages" : "訊息"}
           </button>
 
           {resultTabs.map((rt) => (
@@ -418,7 +418,7 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                 : "text-[#475569] hover:bg-[#e2e8f0]"
             }`}
           >
-            解釋 (Explain)
+            {language === "en" ? "Explain" : "解釋 (Explain)"}
           </button>
         </div>
 
@@ -433,13 +433,24 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             <div className="p-3 space-y-2">
               {!tab.response ? (
                 <div className="text-[#94a3b8]">
-                  按「執行」或 `{isMac ? "⌘Enter" : "Ctrl+Enter"}` 執行 SQL 查詢。
+                  {language === "en"
+                    ? `Press "Run" or ${isMac ? "⌘Enter" : "Ctrl+Enter"} to execute SQL.`
+                    : `按「執行」或 ${isMac ? "⌘Enter" : "Ctrl+Enter"} 執行 SQL 查詢。`}
                 </div>
               ) : (
                 <>
                   <div className="text-[11px] text-[#475569]">
-                    共執行 <strong>{tab.response.statements.length}</strong> 條語句 ·
-                    總耗時 <strong className="font-mono">{tab.response.totalExecutionMs} ms</strong>
+                    {language === "en" ? (
+                      <>
+                        Executed <strong>{tab.response.statements.length}</strong> statement(s) ·
+                        Total time <strong className="font-mono">{tab.response.totalExecutionMs} ms</strong>
+                      </>
+                    ) : (
+                      <>
+                        共執行 <strong>{tab.response.statements.length}</strong> 條語句 ·
+                        總耗時 <strong className="font-mono">{tab.response.totalExecutionMs} ms</strong>
+                      </>
+                    )}
                   </div>
                   {tab.response.statements.map((s) => (
                     <div
@@ -462,8 +473,13 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                           </span>
                         </span>
                         <span className="font-mono text-[10px] text-[#475569]">
-                          {s.executionMs} ms · 影響 {s.affectedRows} 列
-                          {s.resultSet ? ` · 回傳 ${s.resultSet.rows.length} 列` : ""}
+                          {language === "en"
+                            ? `${s.executionMs} ms · ${s.affectedRows} row(s) affected${
+                                s.resultSet ? ` · ${s.resultSet.rows.length} row(s) returned` : ""
+                              }`
+                            : `${s.executionMs} ms · 影響 ${s.affectedRows} 列${
+                                s.resultSet ? ` · 回傳 ${s.resultSet.rows.length} 列` : ""
+                              }`}
                         </span>
                       </div>
                       {s.error && (
@@ -541,7 +557,9 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             <div className="p-3 space-y-2">
               {!tab.explainResponse ? (
                 <div className="text-[#94a3b8]">
-                  點擊上方「解釋」可分析目前語句的執行計畫 (`EXPLAIN`)。
+                  {language === "en"
+                    ? "Click \"Explain\" above to inspect the query execution plan (EXPLAIN)."
+                    : "點擊上方「解釋」可分析目前語句的執行計畫 (`EXPLAIN`)。"}
                 </div>
               ) : (
                 tab.explainResponse.statements.map((stmt) => (
@@ -619,14 +637,16 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
             }}
             className="w-80 rounded border border-[#cbd5e1] bg-white p-4 shadow-xl text-xs"
           >
-            <h3 className="font-semibold text-[#0f172a]">儲存 SQL 查詢</h3>
+            <h3 className="font-semibold text-[#0f172a]">
+              {language === "en" ? "Save SQL Query" : "儲存 SQL 查詢"}
+            </h3>
             <input
               autoFocus
               type="text"
               required
               value={saveTitle}
               onChange={(e) => setSaveTitle(e.target.value)}
-              placeholder="查詢名稱"
+              placeholder={language === "en" ? "Query name" : "查詢名稱"}
               className="mt-3 h-7 w-full rounded border border-[#cbd5e1] px-2 outline-none focus:border-[#2563eb]"
             />
             <div className="mt-4 flex justify-end gap-2">
@@ -635,13 +655,13 @@ export function QueryEditorPane({ tab }: QueryEditorPaneProps) {
                 onClick={() => setSaveModalOpen(false)}
                 className="rounded border border-[#cbd5e1] px-3 py-1 hover:bg-[#f1f5f9]"
               >
-                取消
+                {language === "en" ? "Cancel" : "取消"}
               </button>
               <button
                 type="submit"
                 className="rounded bg-[#2563eb] px-3 py-1 text-white hover:bg-[#1d4ed8]"
               >
-                儲存
+                {language === "en" ? "Save" : "儲存"}
               </button>
             </div>
           </form>

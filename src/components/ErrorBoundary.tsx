@@ -20,11 +20,14 @@ export class ErrorBoundary extends React.Component<
 
   render() {
     if (this.state.error) {
+      const isEn =
+        typeof window !== "undefined" &&
+        window.localStorage?.getItem("sqlcraft.language") === "en";
       return (
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#f5f6f8] p-6 text-[#1f2329] select-text">
           <div className="w-full max-w-lg rounded-xl border border-[#d4d8e0] bg-white p-5 shadow-lg space-y-3">
             <h2 className="text-sm font-semibold text-[#dc2626]">
-              SqlCraft 畫面渲染發生錯誤
+              {isEn ? "SqlCraft Render Error" : "SqlCraft 畫面渲染發生錯誤"}
             </h2>
             <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3 font-mono text-xs text-[#334155]">
               {this.state.error.message}
@@ -35,7 +38,7 @@ export class ErrorBoundary extends React.Component<
                 onClick={() => window.location.reload()}
                 className="rounded-lg bg-[#2563eb] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#1d4ed8]"
               >
-                重新載入視窗
+                {isEn ? "Reload Window" : "重新載入視窗"}
               </button>
             </div>
           </div>

@@ -267,16 +267,7 @@ export default function App() {
               : "border-black/10 bg-[#ececed] text-[#1d1d1f]"
           }`}
         >
-          <div data-tauri-drag-region className="flex items-center gap-2">
-            <span
-              className={`pointer-events-none flex items-center gap-1.5 text-sm font-semibold tracking-tight ${
-                isDark ? "text-[#38bdf8]" : "text-[#0066cc]"
-              }`}
-            >
-              <Database className="h-4 w-4" />
-              SqlCraft
-            </span>
-          </div>
+          <div data-tauri-drag-region className="w-1" />
 
           <div
             data-tauri-drag-region
@@ -304,7 +295,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setRightPaneOpen(!rightPaneOpen)}
-              title="切換右側物件資訊面板 (⌘I)"
+              title={language === "en" ? "Toggle Inspector Pane (⌘I)" : "切換右側物件資訊面板 (⌘I)"}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
                 rightPaneOpen
                   ? isDark
@@ -322,7 +313,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setSettingsModalOpen(true)}
-              title="偏好設定 (⌘,)"
+              title={language === "en" ? "Preferences (⌘,)" : "偏好設定 (⌘,)"}
               className={`rounded-md p-1.5 transition-colors ${
                 isDark
                   ? "bg-white/10 text-[#d1d1d6] hover:bg-white/15 hover:text-white"
@@ -335,7 +326,15 @@ export default function App() {
             <button
               type="button"
               onClick={toggleTheme}
-              title={isDark ? "切換為淺色主題 (Light Mode)" : "切換為深色主題 (Dark Mode)"}
+              title={
+                language === "en"
+                  ? isDark
+                    ? "Switch to Light Mode"
+                    : "Switch to Dark Mode"
+                  : isDark
+                  ? "切換為淺色主題 (Light Mode)"
+                  : "切換為深色主題 (Dark Mode)"
+              }
               className={`rounded-md p-1.5 transition-colors ${
                 isDark
                   ? "bg-white/10 text-amber-300 hover:bg-white/15"
@@ -355,15 +354,6 @@ export default function App() {
               : "border-[#dcdfe6] bg-[#f8f9fb] text-[#3c4043]"
           }`}
         >
-          <span
-            className={`mr-2 flex items-center gap-1 font-semibold ${
-              isDark ? "text-[#38bdf8]" : "text-[#111827]"
-            }`}
-          >
-            <Database className="h-3.5 w-3.5 text-[#2563eb]" />
-            SqlCraft
-          </span>
-
           <div className="relative">
             <button
               type="button"
@@ -693,7 +683,15 @@ export default function App() {
             <button
               type="button"
               onClick={toggleTheme}
-              title={isDark ? "切換為淺色主題" : "切換為深色主題"}
+              title={
+                language === "en"
+                  ? isDark
+                    ? "Switch to Light Mode"
+                    : "Switch to Dark Mode"
+                  : isDark
+                  ? "切換為淺色主題"
+                  : "切換為深色主題"
+              }
               className={`rounded border p-1 ${
                 isDark
                   ? "border-[#3d3d42] text-amber-300 hover:bg-[#333337]"
@@ -725,7 +723,7 @@ export default function App() {
               type="button"
               onClick={() => openConnectionModal(null)}
               className={toolbarBtnCls}
-              title="開啟站台管理 (Site Manager)"
+              title={language === "en" ? "Open Site Manager" : "開啟站台管理 (Site Manager)"}
             >
               <Database
                 className={`h-5 w-5 ${
@@ -737,7 +735,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setConnDropdownOpen((o) => !o)}
-              title="快速建立特定資料庫站台"
+              title={language === "en" ? "Quickly create a database site" : "快速建立特定資料庫站台"}
               className={`px-1 py-3 ${
                 isMac
                   ? isDark
@@ -855,7 +853,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setSettingsModalOpen(true)}
-            title="偏好設定 (Ctrl+,)"
+            title={language === "en" ? "Preferences (Ctrl+,)" : "偏好設定 (Ctrl+,)"}
             className={toolbarBtnCls}
           >
             <Settings className={`h-5 w-5 ${isDark ? "text-[#94a3b8]" : "text-[#475569]"}`} />
@@ -886,7 +884,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setRightPaneOpen(!rightPaneOpen)}
-              title="切換右側物件資訊面板"
+              title={language === "en" ? "Toggle Inspector Pane" : "切換右側物件資訊面板"}
               className={`flex h-9 w-[80px] flex-col items-center justify-center rounded border text-[10px] font-medium ${
                 rightPaneOpen
                   ? "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]"

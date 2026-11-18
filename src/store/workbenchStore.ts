@@ -406,6 +406,12 @@ function readShowSiteManagerOnStartup(): boolean {
 
 let hasOpenedStartupModal = false;
 
+function tr(lang: AppLanguage, en: string, zh: string): string {
+  return lang === "en" ? en : zh;
+}
+
+const initialLanguage = readInitialLanguage();
+
 export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   profiles: [],
   transientProfiles: {},
@@ -434,7 +440,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   objectFilter: "",
   objectViewMode: "list",
 
-  tabs: [{ id: "objects", kind: "objects", title: "物件", closable: false }],
+  tabs: [{ id: "objects", kind: "objects", title: tr(initialLanguage, "Objects", "物件"), closable: false }],
   activeTabId: "objects",
   savedQueries: [],
 
@@ -451,11 +457,15 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
   editingProfile: null,
 
   theme: readInitialTheme(),
-  language: readInitialLanguage(),
+  language: initialLanguage,
   editorFontSize: readInitialFontSize(),
   settingsModalOpen: false,
 
-  statusMessage: "就緒 — 請在左側雙擊連線，或右鍵使用範例結構模式探索",
+  statusMessage: tr(
+    initialLanguage,
+    "Ready — double-click a site on the left or open Site Manager to connect",
+    "就緒 — 請在左側雙擊連線，或右鍵使用範例結構模式探索"
+  ),
   lastLatencyMs: null,
 
   setTheme: (theme) => {
@@ -486,7 +496,22 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     } catch {
       // ignore storage errors
     }
-    set({ language });
+    const prevStatus = get().statusMessage;
+    const isInitialReady =
+      prevStatus === "就緒 — 請在左側雙擊連線，或右鍵使用範例結構模式探索" ||
+      prevStatus === "Ready — double-click a site on the left or open Site Manager to connect";
+    set({
+      language,
+      ...(isInitialReady
+        ? {
+            statusMessage: tr(
+              language,
+              "Ready — double-click a site on the left or open Site Manager to connect",
+              "就緒 — 請在左側雙擊連線，或右鍵使用範例結構模式探索"
+            ),
+          }
+        : {}),
+    });
     const s = get();
     void tauriApi.saveAppConfig({
       theme: s.theme,
@@ -594,7 +619,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     await get().loadProfiles();
     get().appendLog({
       level: "info",
-      message: `已從 YAML 匯入 ${bundle.sites.length} 個站台設定`,
+      message: tr(
+        get().language,
+        `Imported ${bundle.sites.length} site(s) from YAML`,
+        `已從 YAML 匯入 ${bundle.sites.length} 個站台設定`
+      ),
     });
     return bundle.sites.length;
   },
@@ -648,10 +677,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     }
 
     if (remaining.length === 0) {
+      const lang = get().language;
       const defaultObjTab: WorkspaceTab = {
         id: "objects",
         kind: "objects",
-        title: "物件",
+        title: tr(lang, "Objects", "物件"),
         closable: false,
       };
       set({
@@ -660,7 +690,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         selectedScope: null,
         tabs: [defaultObjTab],
         activeTabId: "objects",
-        statusMessage: "已關閉站台分頁 — 請開啟站台管理連線至資料庫",
+        statusMessage: tr(
+          lang,
+          "Closed site tab — open Site Manager to connect to a database",
+          "已關閉站台分頁 — 請開啟站台管理連線至資料庫"
+        ),
       });
       return;
     }
@@ -691,7 +725,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         ...s.expandedNodes,
         [nodeKey]: true,
       },
-      statusMessage: `已開啟資料庫：${dbName}`,
+      statusMessage: tr(get().language, `Opened database: ${dbName}`, `已開啟資料庫：${dbName}`),
     }));
 
     if (profile.dbKind === "postgres") {
@@ -733,7 +767,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         s.selectedScope?.profileId === profileId && s.selectedScope?.database === dbName
           ? { profileId, database: null, schema: null, category: "tables" }
           : s.selectedScope,
-      statusMessage: `已關閉資料庫：${dbName}`,
+      statusMessage: tr(get().language, `Closed database: ${dbName}`, `已關閉資料庫：${dbName}`),
     }));
   },
 
@@ -814,7 +848,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     get().appendLog({
       level: "info",
       profileName: saved.name,
-      message: `已儲存連線設定：${saved.name} (${saved.host}:${saved.port})`,
+      message: tr(
+        get().language,
+        `Saved connection: ${saved.name} (${saved.host}:${saved.port})`,
+        `已儲存連線設定：${saved.name} (${saved.host}:${saved.port})`
+      ),
     });
     return saved;
   },
@@ -834,7 +872,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "warn",
         profileName: target.name,
-        message: `已刪除連線：${target.name}`,
+        message: tr(get().language, `Deleted connection: ${target.name}`, `已刪除連線：${target.name}`),
       });
     }
   },
@@ -844,7 +882,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     const copy: ConnectionProfile = {
       ...profile,
       id: `conn-${Date.now()}`,
-      name: `${profile.name} (複本)`,
+      name: `${profile.name} (${tr(get().language, "Copy", "複本")})`,
       createdAt: now,
       updatedAt: now,
     };
@@ -911,7 +949,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         const defaultObjTab: WorkspaceTab = {
           id: "objects",
           kind: "objects",
-          title: "物件",
+          title: tr(state.language, "Objects", "物件"),
           closable: false,
         };
         const initialScope: SelectedScope = {
@@ -947,7 +985,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     set((state) => ({
       connectionStates: { ...state.connectionStates, [profileId]: "connecting" },
       connectionErrors: { ...state.connectionErrors, [profileId]: "" },
-      statusMessage: `正在連線至 ${profile.name} (${profile.host}:${profile.port})...`,
+      statusMessage: tr(
+        state.language,
+        `Connecting to ${profile.name} (${profile.host}:${profile.port})...`,
+        `正在連線至 ${profile.name} (${profile.host}:${profile.port})...`
+      ),
     }));
 
     if (useDemo) {
@@ -960,13 +1002,21 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         },
         databasesByProfile: { ...state.databasesByProfile, [profileId]: dbs },
         expandedNodes: { ...state.expandedNodes, [`conn:${profileId}`]: true },
-        statusMessage: `已開啟 ${profile.name} [DEMO 模式] — 請在左側雙擊資料庫開啟`,
+        statusMessage: tr(
+          state.language,
+          `Opened ${profile.name} [DEMO Mode] — double-click a database on the left`,
+          `已開啟 ${profile.name} [DEMO 模式] — 請在左側雙擊資料庫開啟`
+        ),
         lastLatencyMs: 1,
       }));
       get().appendLog({
         level: "info",
         profileName: profile.name,
-        message: `已載入離線範例結構 (DEMO 模式，共 ${dbs.length} 個資料庫)`,
+        message: tr(
+          get().language,
+          `Loaded offline demo schema (DEMO mode, ${dbs.length} databases)`,
+          `已載入離線範例結構 (DEMO 模式，共 ${dbs.length} 個資料庫)`
+        ),
         latencyMs: 1,
       });
       return true;
@@ -984,7 +1034,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         set((state) => ({
           connectionStates: { ...state.connectionStates, [profileId]: "error" },
           connectionErrors: { ...state.connectionErrors, [profileId]: res.message },
-          statusMessage: `連線失敗：${res.message}`,
+          statusMessage: tr(
+            state.language,
+            `Connection failed: ${res.message}`,
+            `連線失敗：${res.message}`
+          ),
           lastLatencyMs: res.latencyMs,
         }));
         get().appendLog({
@@ -1003,7 +1057,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
           [profileId]: res.serverVersion || profile.dbKind,
         },
         expandedNodes: { ...state.expandedNodes, [`conn:${profileId}`]: true },
-        statusMessage: `已連線：${profile.name} (${res.serverVersion ?? ""}) — 請在左側雙擊資料庫開啟`,
+        statusMessage: tr(
+          state.language,
+          `Connected: ${profile.name} (${res.serverVersion ?? ""}) — double-click a database on the left`,
+          `已連線：${profile.name} (${res.serverVersion ?? ""}) — 請在左側雙擊資料庫開啟`
+        ),
         lastLatencyMs: res.latencyMs,
       }));
 
@@ -1024,7 +1082,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       set((state) => ({
         connectionStates: { ...state.connectionStates, [profileId]: "error" },
         connectionErrors: { ...state.connectionErrors, [profileId]: msg },
-        statusMessage: `連線錯誤：${msg}`,
+        statusMessage: tr(state.language, `Connection error: ${msg}`, `連線錯誤：${msg}`),
       }));
       get().appendLog({
         level: "error",
@@ -1042,7 +1100,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     set((state) => ({
       connectionStates: { ...state.connectionStates, [profileId]: "disconnected" },
       connectionErrors: { ...state.connectionErrors, [profileId]: "" },
-      statusMessage: `已取消連線：${profile?.name ?? profileId}`,
+      statusMessage: tr(
+        state.language,
+        `Cancelled connection: ${profile?.name ?? profileId}`,
+        `已取消連線：${profile?.name ?? profileId}`
+      ),
     }));
     get().openConnectionModal(profile);
   },
@@ -1056,12 +1118,16 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     set((state) => ({
       connectionStates: { ...state.connectionStates, [profileId]: "disconnected" },
       expandedNodes: { ...state.expandedNodes, [`conn:${profileId}`]: false },
-      statusMessage: `已關閉連線：${profile?.name ?? profileId}`,
+      statusMessage: tr(
+        state.language,
+        `Disconnected: ${profile?.name ?? profileId}`,
+        `已關閉連線：${profile?.name ?? profileId}`
+      ),
     }));
     get().appendLog({
       level: "info",
       profileName: profile?.name,
-      message: "已中斷資料庫連線",
+      message: tr(get().language, "Disconnected from database", "已中斷資料庫連線"),
     });
   },
 
@@ -1080,11 +1146,16 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       }));
     } catch (err) {
       const msg = String(err);
-      set({ statusMessage: `讀取資料庫清單失敗：${msg}` });
+      const errText = tr(
+        get().language,
+        `Failed to load databases: ${msg}`,
+        `讀取資料庫清單失敗：${msg}`
+      );
+      set({ statusMessage: errText });
       get().appendLog({
         level: "error",
         profileName: profile.name,
-        message: `讀取資料庫清單失敗：${msg}`,
+        message: errText,
       });
     } finally {
       set((s) => ({ loadingNodes: { ...s.loadingNodes, [key]: false } }));
@@ -1148,7 +1219,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "error",
         profileName: profile.name,
-        message: `載入物件清單失敗：${String(err)}`,
+        message: tr(
+          get().language,
+          `Failed to load objects: ${String(err)}`,
+          `載入物件清單失敗：${String(err)}`
+        ),
       });
     } finally {
       set((s) => ({ loadingNodes: { ...s.loadingNodes, [`scope:${key}`]: false } }));
@@ -1412,7 +1487,9 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
           affectedRows: 0,
           executionMs: 3,
           truncated: false,
-          warning: meta ? "Demo 模式資料預覽（離線範例資料）" : "找不到範例資料表",
+          warning: meta
+            ? tr(get().language, "Demo mode data preview (offline sample data)", "Demo 模式資料預覽（離線範例資料）")
+            : tr(get().language, "Sample table not found", "找不到範例資料表"),
         };
         set((state) => ({
           tabs: state.tabs.map((t) =>
@@ -1420,7 +1497,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
               ? { ...t, loading: false, result, tableColumns: cols }
               : t
           ),
-          statusMessage: `${tab.tableName}：第 ${nextPage} 頁，共 ${pageRows.length} 筆（Demo 模式）`,
+          statusMessage: tr(
+            state.language,
+            `${tab.tableName}: Page ${nextPage}, ${pageRows.length} rows (Demo Mode)`,
+            `${tab.tableName}：第 ${nextPage} 頁，共 ${pageRows.length} 筆（Demo 模式）`
+          ),
           lastLatencyMs: result.executionMs,
         }));
         return;
@@ -1450,7 +1531,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, loading: false, result, tableColumns }
             : t
         ),
-        statusMessage: `${tab.tableName}：第 ${nextPage} 頁載入 ${result.rows.length} 筆（${result.executionMs} ms）`,
+        statusMessage: tr(
+          state.language,
+          `${tab.tableName}: Page ${nextPage}, loaded ${result.rows.length} rows (${result.executionMs} ms)`,
+          `${tab.tableName}：第 ${nextPage} 頁載入 ${result.rows.length} 筆（${result.executionMs} ms）`
+        ),
         lastLatencyMs: result.executionMs,
       }));
     } catch (err) {
@@ -1461,7 +1546,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, loading: false, error: msg }
             : t
         ),
-        statusMessage: `讀取資料表失敗：${msg}`,
+        statusMessage: tr(state.language, `Failed to load table: ${msg}`, `讀取資料表失敗：${msg}`),
       }));
     }
   },
@@ -1486,7 +1571,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "success",
         profileName: profile.name,
-        message: `[DEMO] 已套用 ${statements.length} 筆資料異動至 ${tab.tableName}`,
+        message: tr(
+          get().language,
+          `[DEMO] Applied ${statements.length} row change(s) to ${tab.tableName}`,
+          `[DEMO] 已套用 ${statements.length} 筆資料異動至 ${tab.tableName}`
+        ),
       });
       await get().refreshTableDataTab(tabId);
       return;
@@ -1508,7 +1597,9 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       await tauriApi
         .executeQuery(tab.profileId, tab.database, tab.schema, "ROLLBACK;")
         .catch(() => undefined);
-      const errMsg = failed.error ?? "套用變更失敗並已回滾交易";
+      const errMsg =
+        failed.error ??
+        tr(get().language, "Failed to apply changes; transaction rolled back", "套用變更失敗並已回滾交易");
       get().appendLog({
         level: "error",
         profileName: profile.name,
@@ -1520,7 +1611,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     get().appendLog({
       level: "success",
       profileName: profile.name,
-      message: `已成功套用 ${statements.length} 筆異動至 ${tab.tableName}`,
+      message: tr(
+        get().language,
+        `Applied ${statements.length} change(s) to ${tab.tableName}`,
+        `已成功套用 ${statements.length} 筆異動至 ${tab.tableName}`
+      ),
       latencyMs: res.totalExecutionMs,
     });
     await get().refreshTableDataTab(tabId);
@@ -1540,7 +1635,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         {
           id: tabId,
           kind: "table-design",
-          title: `設計 @ ${tableName}`,
+          title: `${tr(state.language, "Design", "設計")} @ ${tableName}`,
           closable: true,
           profileId,
           database,
@@ -1613,7 +1708,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
         {
           id: tabId,
           kind: "table-design",
-          title: "新建資料表",
+          title: tr(state.language, "New Table", "新建資料表"),
           closable: true,
           profileId,
           database,
@@ -1632,7 +1727,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
               isAutoIncrement: true,
               characterSet: null,
               collation: null,
-              comment: "主鍵 ID",
+              comment: tr(state.language, "Primary Key ID", "主鍵 ID"),
             },
           ],
           indexes: [],
@@ -1670,7 +1765,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
                 ...t,
                 isNew: false,
                 tableName: targetTableName,
-                title: `設計 @ ${targetTableName}`,
+                title: `${tr(state.language, "Design", "設計")} @ ${targetTableName}`,
                 columns: demoTableMeta?.columns ?? t.columns,
                 indexes: demoTableMeta?.indexes ?? t.indexes,
                 foreignKeys: demoTableMeta?.foreignKeys ?? t.foreignKeys,
@@ -1678,12 +1773,20 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
               }
             : t
         ),
-        statusMessage: `[DEMO] 已儲存資料表結構：${targetTableName}`,
+        statusMessage: tr(
+          state.language,
+          `[DEMO] Saved table design: ${targetTableName}`,
+          `[DEMO] 已儲存資料表結構：${targetTableName}`
+        ),
       }));
       get().appendLog({
         level: "success",
         profileName: profile.name,
-        message: `[DEMO] ${isNew ? "建立" : "更新"}資料表 ${targetTableName}`,
+        message: tr(
+          get().language,
+          `[DEMO] ${isNew ? "Created" : "Updated"} table ${targetTableName}`,
+          `[DEMO] ${isNew ? "建立" : "更新"}資料表 ${targetTableName}`
+        ),
       });
       return;
     }
@@ -1696,7 +1799,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     );
     const failed = res.statements.find((s) => !s.success);
     if (failed) {
-      const msg = failed.error ?? "執行 DDL 失敗";
+      const msg = failed.error ?? tr(get().language, "Failed to execute DDL", "執行 DDL 失敗");
       get().appendLog({ level: "error", profileName: profile.name, message: msg });
       throw new Error(msg);
     }
@@ -1718,7 +1821,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
               ...t,
               isNew: false,
               tableName: targetTableName,
-              title: `設計 @ ${targetTableName}`,
+              title: `${tr(state.language, "Design", "設計")} @ ${targetTableName}`,
               columns,
               indexes,
               foreignKeys,
@@ -1726,13 +1829,21 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             }
           : t
       ),
-      statusMessage: `已儲存資料表結構：${targetTableName} (${res.totalExecutionMs} ms)`,
+      statusMessage: tr(
+        state.language,
+        `Saved table design: ${targetTableName} (${res.totalExecutionMs} ms)`,
+        `已儲存資料表結構：${targetTableName} (${res.totalExecutionMs} ms)`
+      ),
       lastLatencyMs: res.totalExecutionMs,
     }));
     get().appendLog({
       level: "success",
       profileName: profile.name,
-      message: `${isNew ? "建立" : "更新"}資料表 ${targetTableName}`,
+      message: tr(
+        get().language,
+        `${isNew ? "Created" : "Updated"} table ${targetTableName}`,
+        `${isNew ? "建立" : "更新"}資料表 ${targetTableName}`
+      ),
       latencyMs: res.totalExecutionMs,
     });
   },
@@ -1751,7 +1862,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     const targetDb = database ?? selected?.database ?? null;
     const targetSchema = schema ?? selected?.schema ?? null;
     const id = `query-${Date.now()}-${queryCounter}`;
-    const title = customTitle?.trim() || `查詢 ${queryCounter++}`;
+    const title = customTitle?.trim() || `${tr(get().language, "Query", "查詢")} ${queryCounter++}`;
     const defaultSql =
       initialSql ??
       (targetDb
@@ -1852,7 +1963,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
               affectedRows: 0,
               executionMs: 3,
               truncated: false,
-              warning: "目前為離線 DEMO 模式，實際資料庫執行請連接真實 MySQL/MariaDB/PostgreSQL。",
+              warning: tr(
+                get().language,
+                "Offline DEMO mode — connect a real MySQL/MariaDB/PostgreSQL server for live execution.",
+                "目前為離線 DEMO 模式，實際資料庫執行請連接真實 MySQL/MariaDB/PostgreSQL。"
+              ),
             },
           },
         ],
@@ -1863,7 +1978,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, running: false, response }
             : t
         ),
-        statusMessage: `查詢執行完成 (DEMO, ${response.totalExecutionMs} ms)`,
+        statusMessage: tr(
+          state.language,
+          `Query completed (DEMO, ${response.totalExecutionMs} ms)`,
+          `查詢執行完成 (DEMO, ${response.totalExecutionMs} ms)`
+        ),
         lastLatencyMs: response.totalExecutionMs,
       }));
       return;
@@ -1883,13 +2002,21 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, running: false, response }
             : t
         ),
-        statusMessage: `執行 ${response.statements.length} 句 SQL 完成（${response.totalExecutionMs} ms）`,
+        statusMessage: tr(
+          state.language,
+          `Executed ${response.statements.length} statement(s) (${response.totalExecutionMs} ms)`,
+          `執行 ${response.statements.length} 句 SQL 完成（${response.totalExecutionMs} ms）`
+        ),
         lastLatencyMs: response.totalExecutionMs,
       }));
       get().appendLog({
         level: response.statements.every((s) => s.success) ? "success" : "warn",
         profileName: profile?.name,
-        message: `執行 ${response.statements.length} 句查詢`,
+        message: tr(
+          get().language,
+          `Executed ${response.statements.length} query statement(s)`,
+          `執行 ${response.statements.length} 句查詢`
+        ),
         latencyMs: response.totalExecutionMs,
       });
     } catch (err) {
@@ -1900,7 +2027,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, running: false, error: msg }
             : t
         ),
-        statusMessage: `執行錯誤：${msg}`,
+        statusMessage: tr(state.language, `Execution error: ${msg}`, `執行錯誤：${msg}`),
       }));
       get().appendLog({
         level: "error",
@@ -1978,7 +2105,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, running: false, explainResponse }
             : t
         ),
-        statusMessage: `EXPLAIN 計畫分析完成 (DEMO)`,
+        statusMessage: tr(state.language, "EXPLAIN analysis completed (DEMO)", "EXPLAIN 計畫分析完成 (DEMO)"),
       }));
       return;
     }
@@ -1997,7 +2124,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
             ? { ...t, running: false, explainResponse }
             : t
         ),
-        statusMessage: `EXPLAIN 完成（${explainResponse.totalExecutionMs} ms）`,
+        statusMessage: tr(
+          state.language,
+          `EXPLAIN completed (${explainResponse.totalExecutionMs} ms)`,
+          `EXPLAIN 完成（${explainResponse.totalExecutionMs} ms）`
+        ),
         lastLatencyMs: explainResponse.totalExecutionMs,
       }));
     } catch (err) {
@@ -2017,7 +2148,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       tabs: state.tabs.map((t) =>
         t.id === tabId && t.kind === "query" ? { ...t, running: false } : t
       ),
-      statusMessage: "已送出查詢取消請求",
+      statusMessage: tr(state.language, "Cancellation requested", "已送出查詢取消請求"),
     }));
   },
 
@@ -2047,11 +2178,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
           ? { ...t, title: saved.title, savedQueryId: saved.id }
           : t
       ),
-      statusMessage: `已儲存查詢：${saved.title}`,
+      statusMessage: tr(state.language, `Saved query: ${saved.title}`, `已儲存查詢：${saved.title}`),
     }));
     get().appendLog({
       level: "info",
-      message: `已儲存 SQL 查詢「${saved.title}」`,
+      message: tr(get().language, `Saved SQL query "${saved.title}"`, `已儲存 SQL 查詢「${saved.title}」`),
     });
     return saved;
   },
@@ -2061,7 +2192,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     await get().loadSavedQueries();
     get().appendLog({
       level: "warn",
-      message: `已刪除已儲存的 SQL 查詢`,
+      message: tr(get().language, "Deleted saved SQL query", "已刪除已儲存的 SQL 查詢"),
     });
   },
 
@@ -2081,7 +2212,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "warn",
         profileName: profile.name,
-        message: `[DEMO] 已刪除資料表 ${tableName}`,
+        message: tr(get().language, `[DEMO] Dropped table ${tableName}`, `[DEMO] 已刪除資料表 ${tableName}`),
       });
       return;
     }
@@ -2092,7 +2223,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     get().appendLog({
       level: "warn",
       profileName: profile.name,
-      message: `已刪除資料表 ${tableName}`,
+      message: tr(get().language, `Dropped table ${tableName}`, `已刪除資料表 ${tableName}`),
     });
   },
 
@@ -2106,7 +2237,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "warn",
         profileName: profile.name,
-        message: `[DEMO] 已清空資料表 ${tableName}`,
+        message: tr(get().language, `[DEMO] Truncated table ${tableName}`, `[DEMO] 已清空資料表 ${tableName}`),
       });
       return;
     }
@@ -2117,7 +2248,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     get().appendLog({
       level: "warn",
       profileName: profile.name,
-      message: `已清空資料表 ${tableName}`,
+      message: tr(get().language, `Truncated table ${tableName}`, `已清空資料表 ${tableName}`),
     });
   },
 
@@ -2140,7 +2271,11 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
       get().appendLog({
         level: "info",
         profileName: profile.name,
-        message: `[DEMO] 已重新命名 ${oldName} -> ${trimmed}`,
+        message: tr(
+          get().language,
+          `[DEMO] Renamed ${oldName} -> ${trimmed}`,
+          `[DEMO] 已重新命名 ${oldName} -> ${trimmed}`
+        ),
       });
       return;
     }
@@ -2155,7 +2290,7 @@ export const useWorkbenchStore = create<WorkbenchState>((set, get) => ({
     get().appendLog({
       level: "info",
       profileName: profile.name,
-      message: `已重新命名 ${oldName} -> ${trimmed}`,
+      message: tr(get().language, `Renamed ${oldName} -> ${trimmed}`, `已重新命名 ${oldName} -> ${trimmed}`),
     });
   },
 

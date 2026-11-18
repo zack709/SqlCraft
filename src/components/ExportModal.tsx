@@ -6,6 +6,7 @@ import {
   exportToSqlInsert,
   triggerFileDownload,
 } from "../lib/export-utils";
+import { useWorkbenchStore } from "../store/workbenchStore";
 import type { DbKind, QueryResultSet } from "../types/database";
 
 export type ExportFormat = "csv" | "json" | "sql";
@@ -29,6 +30,8 @@ export function ExportModal({
   defaultTableName,
   onClose,
 }: ExportModalProps) {
+  const language = useWorkbenchStore((s) => s.language);
+  const isEn = language === "en";
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [delimiter, setDelimiter] = useState(",");
   const [includeHeaders, setIncludeHeaders] = useState(true);
@@ -72,7 +75,9 @@ export function ExportModal({
 
   const previewText =
     output.length > 12000
-      ? `${output.slice(0, 12000)}\n\n... (預覽截斷，完整檔案共 ${output.length.toLocaleString()} 字元)`
+      ? isEn
+        ? `${output.slice(0, 12000)}\n\n... (Preview truncated, total ${output.length.toLocaleString()} chars)`
+        : `${output.slice(0, 12000)}\n\n... (預覽截斷，完整檔案共 ${output.length.toLocaleString()} 字元)`
       : output;
 
   const handleDownload = () => {
@@ -101,7 +106,11 @@ export function ExportModal({
         <div className="flex h-9 items-center justify-between border-b border-[#dcdfe6] bg-[#f8f9fb] px-4">
           <div className="flex items-center gap-2 font-semibold text-[#111827]">
             <FileSpreadsheet className="h-4 w-4 text-[#059669]" />
-            <span>匯出精靈（共 {result.rows.length.toLocaleString()} 筆資料）</span>
+            <span>
+              {isEn
+                ? `Export Wizard (${result.rows.length.toLocaleString()} rows)`
+                : `匯出精靈（共 ${result.rows.length.toLocaleString()} 筆資料）`}
+            </span>
           </div>
           <button
             type="button"
@@ -115,7 +124,7 @@ export function ExportModal({
         <div className="space-y-3 p-4">
           {/* Format Tabs */}
           <div className="flex items-center gap-2">
-            <span className="text-[#475569]">匯出格式：</span>
+            <span className="text-[#475569]">{isEn ? "Format:" : "匯出格式："}</span>
             {(
               [
                 { id: "csv", label: "CSV (.csv)" },
@@ -143,14 +152,14 @@ export function ExportModal({
             {format === "csv" && (
               <>
                 <label className="flex items-center gap-1.5">
-                  <span>分隔符號：</span>
+                  <span>{isEn ? "Delimiter:" : "分隔符號："}</span>
                   <select
                     value={delimiter}
                     onChange={(e) => setDelimiter(e.target.value)}
                     className="h-6 rounded border border-[#cbd5e1] bg-white px-1.5 font-mono"
                   >
-                    <option value=",">逗號 (,)</option>
-                    <option value=";">分號 (;)</option>
+                    <option value=",">{isEn ? "Comma (,)" : "逗號 (,)"}</option>
+                    <option value=";">{isEn ? "Semicolon (;)" : "分號 (;)"}</option>
                     <option value={"\t"}>Tab (\t)</option>
                   </select>
                 </label>
@@ -160,14 +169,14 @@ export function ExportModal({
                     checked={includeHeaders}
                     onChange={(e) => setIncludeHeaders(e.target.checked)}
                   />
-                  <span>包含欄位表頭</span>
+                  <span>{isEn ? "Include column headers" : "包含欄位表頭"}</span>
                 </label>
                 <label className="flex items-center gap-1.5">
-                  <span>NULL 顯示：</span>
+                  <span>{isEn ? "NULL display:" : "NULL 顯示："}</span>
                   <input
                     type="text"
                     value={nullText}
-                    placeholder="(空白)"
+                    placeholder={isEn ? "(empty)" : "(空白)"}
                     onChange={(e) => setNullText(e.target.value)}
                     className="h-6 w-20 rounded border border-[#cbd5e1] bg-white px-1.5 font-mono"
                   />
@@ -182,14 +191,14 @@ export function ExportModal({
                   checked={prettyJson}
                   onChange={(e) => setPrettyJson(e.target.checked)}
                 />
-                <span>格式化縮排 (Pretty Print)</span>
+                <span>{isEn ? "Pretty Print" : "格式化縮排 (Pretty Print)"}</span>
               </label>
             )}
 
             {format === "sql" && (
               <>
                 <label className="flex items-center gap-1.5">
-                  <span>目標表名：</span>
+                  <span>{isEn ? "Target Table:" : "目標表名："}</span>
                   <input
                     type="text"
                     value={tableName}
@@ -203,7 +212,11 @@ export function ExportModal({
                     checked={multiRowBatch}
                     onChange={(e) => setMultiRowBatch(e.target.checked)}
                   />
-                  <span>合併多列 INSERT (每批 200 筆)</span>
+                  <span>
+                    {isEn
+                      ? "Batch multi-row INSERT (200 rows/batch)"
+                      : "合併多列 INSERT (每批 200 筆)"}
+                  </span>
                 </label>
               </>
             )}
@@ -226,7 +239,7 @@ export function ExportModal({
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
-            <span>{copied ? "已複製" : "複製全部"}</span>
+            <span>{copied ? (isEn ? "Copied" : "已複製") : isEn ? "Copy All" : "複製全部"}</span>
           </button>
           <button
             type="button"
@@ -234,7 +247,7 @@ export function ExportModal({
             className="flex items-center gap-1.5 rounded bg-[#059669] px-3.5 py-1.5 font-medium text-white hover:bg-[#047857]"
           >
             <Download className="h-3.5 w-3.5" />
-            <span>下載檔案</span>
+            <span>{isEn ? "Download File" : "下載檔案"}</span>
           </button>
         </div>
       </div>
