@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows Portable Mode & `./config/` Storage**: Added `portable` Cargo feature (`--features portable`) and automatic portable detection (`config/`, `.portable`, or `portable.txt` beside `SqlCraft.exe`), storing app preferences in `config/config.json`, encrypted site profiles & saved queries in `config/sqlcraft.db`, and the AES-256-GCM key in `config/master.key`, plus `SqlCraft_<version>_x64-portable.zip` CI packaging in `.github/workflows/release.yml`.
 
 ### Changed
-- **License**: Switched project license to **Business Source License 1.1 (`BUSL-1.1`)**.
+- **License**: Switched project license to **Apache License 2.0 + Commons Clause 1.0** (`LICENSE`).
 - **Navicat-Style Tree & Connection UX**: Double-clicking a database opens it without auto-expanding tables; category folders (`Tables`, `Views`, etc.) select on single-click and expand on double-click; single-row highlight on folder selection. Clicking Connect closes Site Manager immediately and displays connecting status with a **Cancel Connection** button in the left explorer.
 - **UI Cleanup**: Removed Demo preview buttons and tag color swatches from Site Manager.
 

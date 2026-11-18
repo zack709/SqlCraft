@@ -3,7 +3,7 @@ name = "sqlcraft"
 version = "0.1.1"
 description = "Cross-platform database workbench built with Tauri 2.0"
 authors = ["SqlCraft"]
-license = "BUSL-1.1"
+license-file = "../LICENSE"
 edition = "2021"
 
 [lib]
