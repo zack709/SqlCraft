@@ -13,8 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Multi-Language Support (`src/lib/i18n.ts`)**: Added Traditional Chinese (`zh-TW`) and English (`en`) UI localization with a language dropdown in Preferences.
 - **Redesigned Site Manager & Session Tabs (`ConnectionModal.tsx`, `SessionTabsBar.tsx`)**: Added folder management, YAML import/export (`src/lib/yaml-sites.ts`), database engine dropdown with `DbEngineIcon`, multi-session tabs, and ad-hoc connections (`connect_adhoc_profile`) that connect without auto-saving.
 - **SSH Tunnel Auth Methods**: Added support for `Password`, `Public Key`, and `Password & Public Key` (`PasswordAndPrivateKey`) in the SSH Tunnel tab and Rust backend.
+- **Windows Portable Mode & `./config/` Storage**: Added `portable` Cargo feature (`--features portable`) and automatic portable detection (`config/`, `.portable`, or `portable.txt` beside `SqlCraft.exe`), storing app preferences in `config/config.json`, encrypted site profiles & saved queries in `config/sqlcraft.db`, and the AES-256-GCM key in `config/master.key`, plus `SqlCraft_<version>_x64-portable.zip` CI packaging in `.github/workflows/release.yml`.
 
 ### Changed
+- **License**: Switched project license to **Business Source License 1.1 (`BUSL-1.1`)**.
 - **Navicat-Style Tree & Connection UX**: Double-clicking a database opens it without auto-expanding tables; category folders (`Tables`, `Views`, etc.) select on single-click and expand on double-click; single-row highlight on folder selection. Clicking Connect closes Site Manager immediately and displays connecting status with a **Cancel Connection** button in the left explorer.
 - **UI Cleanup**: Removed Demo preview buttons and tag color swatches from Site Manager.
 
