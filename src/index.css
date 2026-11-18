@@ -20,6 +20,18 @@ html[data-platform="macos"],
 html[data-platform="macos"] body,
 html[data-platform="macos"] #root {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Helvetica Neue", sans-serif;
+  font-kerning: normal;
+  font-variant-ligatures: contextual;
+}
+
+/* macOS HiDPI / Retina crispness */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  html[data-platform="macos"] svg {
+    shape-rendering: geometricPrecision;
+  }
+  html[data-platform="macos"] img {
+    image-rendering: -webkit-optimize-contrast;
+  }
 }
 
 html[data-theme="dark"] {

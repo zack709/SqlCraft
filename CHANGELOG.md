@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2026-11-18
 
 ### Added
-- **macOS Universal Build & Native OS Styling**: Added macOS native menu (`src-tauri/src/menu.rs`), OS-adaptive UI styling (`src/utils/platform.ts`), custom `SqlCraft` app icon (`src-tauri/icons/`), `ErrorBoundary`, and `universal-apple-darwin` bundle configuration.
+- **macOS Universal Build & Native OS Styling**: Added macOS native menu (`src-tauri/src/menu.rs`), OS-adaptive UI styling (`src/utils/platform.ts`), custom `SqlCraft` app icon (`src-tauri/icons/`), `ErrorBoundary`, `universal-apple-darwin` bundle configuration, and macOS HiDPI / Retina rendering optimizations (`Info.plist`, `src/index.css`).
 - **Dark Theme & Preferences (`SettingsModal.tsx`)**: Added Light / Dark theme switching, SQL editor font size selector, default object view mode, and inspector visibility toggle.
 - **Multi-Language Support (`src/lib/i18n.ts`)**: Added Traditional Chinese (`zh-TW`) and English (`en`) UI localization with a language dropdown in Preferences.
 - **Redesigned Site Manager & Session Tabs (`ConnectionModal.tsx`, `SessionTabsBar.tsx`)**: Added folder management, YAML import/export (`src/lib/yaml-sites.ts`), database engine dropdown with `DbEngineIcon`, multi-session tabs, and ad-hoc connections (`connect_adhoc_profile`) that connect without auto-saving.
