@@ -87,4 +87,4 @@ In Portable Mode, all application preferences (`config.json`), encrypted site ma
 
 ## License
 
-Licensed under the [Apache License, Version 2.0](LICENSE) (`Apache-2.0`).
+Licensed under the [Business Source License 1.1](LICENSE) (`BUSL-1.1`).

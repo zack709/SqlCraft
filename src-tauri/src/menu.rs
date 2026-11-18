@@ -18,7 +18,7 @@ pub fn build_app_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error>
             comments: Some(
                 "Cross-platform database workbench for MySQL, MariaDB, and PostgreSQL.".into(),
             ),
-            license: Some("Apache-2.0".into()),
+            license: Some("BUSL-1.1".into()),
             ..Default::default()
         };
         let app_sub = SubmenuBuilder::new(app, "SqlCraft")
